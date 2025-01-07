@@ -9,7 +9,7 @@ fn main() {
     let stdin = io::stdin();
     let mut input = String::new();
     stdin.read_line(&mut input).unwrap();
-    println!("{}: command not found \n", input);
+    println!("{}: command not found", input.trim());
 }
 
 fn validate_command(cmd: &str) -> bool {
