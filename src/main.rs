@@ -1,12 +1,6 @@
 #[allow(unused_imports)]
 use std::io::{self, Write};
 
-struct Command<'a> {
-    raw_cmd: String,
-    cmd: &'a str,
-    args: &'a str, //probably needs a generic later on
-}
-
 #[derive(Debug)]
 enum ProgramError {
     IOError(std::io::Error),
@@ -34,11 +28,9 @@ fn main() -> Result<(), ProgramError> {
         let stdin = io::stdin();
         let mut input = String::new();
         stdin.read_line(&mut input).unwrap();
-        let command: Vec<&str> = input.split_whitespace().collect::<Vec<&str>>();
-
-        if command[0] == "exit" && command[1] == "0" {
-            return Ok(());
-        }
-        println!("{}: command not found", input.trim());
+        match input.trim() {
+            "exit 0" => return Ok(()),
+            n => println!("{}: command not found", n),
+        };
     }
 }
