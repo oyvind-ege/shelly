@@ -26,7 +26,7 @@ struct EchoCommand {
 
 #[derive(Debug)]
 struct TypeCommand {
-    args: String,
+    args: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -62,7 +62,7 @@ impl Command {
                 args: self.args.clone(),
             }),
             "type" => Box::new(TypeCommand {
-                args: self.args.first().unwrap().to_string(),
+                args: self.args.clone(),
             }),
             _ => todo!(),
         }
@@ -92,9 +92,10 @@ impl Execute for InvalidCommand {
 
 impl Execute for TypeCommand {
     fn execute(&self) {
-        match &self.args {
-            arg if !COMMANDS.contains(&arg.as_str()) => println!("{}: not found", arg),
-            arg => println!("{} is a builtin", arg),
+        match self.args.first() {
+            Some(arg) if !COMMANDS.contains(&arg.as_str()) => println!("{}: not found", arg),
+            Some(arg) => println!("{} is a builtin", arg),
+            None => println!("Wrong usage"),
         };
     }
 }
