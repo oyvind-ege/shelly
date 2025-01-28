@@ -94,7 +94,11 @@ impl Execute for TypeCommand {
     fn execute(&self) {
         match self.args.first() {
             Some(arg) if !COMMANDS.contains(&arg.as_str()) => println!("{}: not found", arg),
+<<<<<<< HEAD
             Some(arg) => println!("{} is a builtin", arg),
+=======
+            Some(arg) => println!("{} is a shell builtin", arg),
+>>>>>>> ed257d4 (gfix: type no longer panics on wrong args)
             None => println!("Wrong usage"),
         };
     }
