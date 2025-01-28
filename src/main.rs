@@ -1,9 +1,10 @@
 use std::io::{self, Write};
 use std::process::{self};
 
-static COMMANDS: [&str; 3] = ["exit", "echo", "type"];
-
 extern crate exitcode;
+
+// This list is currently decoupled from the actual existence of command structs and implementations of Execute. Perhaps that is fine.
+static COMMANDS: [&str; 3] = ["exit", "echo", "type"];
 
 trait Execute {
     fn execute(&self);
@@ -42,6 +43,7 @@ impl Command {
     fn parse(&mut self, input: String) -> Box<dyn Execute> {
         let split_input = input.split_whitespace().collect::<Vec<&str>>();
 
+        // TODO: Consider moving parse() into command-specific implementation. That way we can sooner catch incorrect usage.
         self.args = if split_input.len() > 1 {
             split_input[1..]
                 .iter()
@@ -95,7 +97,7 @@ impl Execute for TypeCommand {
         match self.args.first() {
             Some(arg) if !COMMANDS.contains(&arg.as_str()) => println!("{}: not found", arg),
             Some(arg) => println!("{} is a shell builtin", arg),
-            None => println!("Wrong usage"),
+            None => println!("Wrong usage"), //this right here is the entry point for a manpage message
         };
     }
 }
