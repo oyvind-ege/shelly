@@ -1,6 +1,8 @@
 use std::io::{self, Write};
 use std::process::{self};
 
+static COMMANDS: [&str; 3] = ["exit", "echo", "type"];
+
 extern crate exitcode;
 
 trait Execute {
@@ -8,70 +10,69 @@ trait Execute {
 }
 
 #[derive(Debug)]
-enum CommandKind {
-    Type(TypeCommand),
-    Exit(ExitCommand),
-    Echo(EchoCommand),
-    Invalid(String),
-}
-
-#[derive(Debug)]
-struct Command<'a> {
-    cmd: String,
-    args: Vec<&'a str>,
+struct Command {
+    args: Vec<String>,
 }
 
 #[derive(Debug)]
 struct ExitCommand {
     args: Vec<String>,
 }
+
 #[derive(Debug)]
 struct EchoCommand {
     args: Vec<String>,
 }
+
 #[derive(Debug)]
-struct TypeCommand {}
+struct TypeCommand {
+    args: String,
+}
 
 #[derive(Debug)]
 struct InvalidCommand {
-    args: Vec<String>,
+    args: String,
 }
 
-impl<'a> Command<'a> {
+impl Command {
     fn new() -> Self {
-        Command {
-            cmd: "Invalid".to_string(),
-            args: vec![""],
-        }
+        Command { args: vec![] }
     }
 
     fn parse(&mut self, input: String) -> Box<dyn Execute> {
         let split_input = input.split_whitespace().collect::<Vec<&str>>();
 
         self.args = if split_input.len() > 1 {
-            split_input[1..].to_vec()
+            split_input[1..]
+                .iter()
+                .map(|arg| arg.to_string())
+                .collect::<Vec<String>>()
         } else {
-            [""].to_vec()
+            [].to_vec()
         };
 
         match split_input[0] {
+            cmd if !COMMANDS.contains(&cmd) => Box::new(InvalidCommand {
+                args: cmd.to_string(),
+            }),
             "exit" => Box::new(ExitCommand {
                 args: self.args.clone(),
             }),
             "echo" => Box::new(EchoCommand {
                 args: self.args.clone(),
             }),
-            cmd => Box::new(InvalidCommand {
-                args: [cmd.to_string()].to_vec(),
+            "type" => Box::new(TypeCommand {
+                args: self.args.first().unwrap().to_string(),
             }),
+            _ => todo!(),
         }
     }
 }
 
 impl Execute for ExitCommand {
     fn execute(&self) {
-        match self.args.first().unwrap() {
-            val if val == "0" => process::exit(exitcode::OK),
+        match self.args.first() {
+            Some(val) if val == "0" => process::exit(exitcode::OK),
             _ => process::exit(exitcode::USAGE),
         }
     }
@@ -85,7 +86,16 @@ impl Execute for EchoCommand {
 
 impl Execute for InvalidCommand {
     fn execute(&self) {
-        println!("{:?}: command not found", self.args);
+        println!("{}: command not found", self.args);
+    }
+}
+
+impl Execute for TypeCommand {
+    fn execute(&self) {
+        match &self.args {
+            arg if !COMMANDS.contains(&arg.as_str()) => println!("{}: not found", arg),
+            arg => println!("{} is a builtin", arg),
+        };
     }
 }
 
@@ -100,15 +110,4 @@ fn main() {
         stdin.read_line(&mut input).unwrap();
         Command::new().parse(input.trim().to_string()).execute();
     }
-}
-
-// command.parse(input.trim()).execute();
-
-#[cfg(test)]
-mod tests {
-
-    use super::*;
-
-    #[test]
-    fn it_works() {}
 }
