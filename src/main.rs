@@ -137,6 +137,7 @@ impl Execute for TypeCommand {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    println!("ENV is: {:?}", env::var_os("PATH").unwrap());
     loop {
         print!("$ ");
         io::stdout().flush().unwrap();
