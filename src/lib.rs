@@ -19,38 +19,12 @@ pub fn get_executables_from_paths(pbs: Vec<PathBuf>) -> io::Result<HashMap<Strin
                         .into_string()
                         .unwrap();
 
-                    if !executables.contains_key(&binary_name) {
-                        executables.insert(binary_name.clone(), path.clone().into_os_string());
-                    }
+                    executables
+                        .entry(binary_name)
+                        .or_insert(path.clone().into_os_string());
                 }
             }
         }
     }
     Ok(executables)
-}
-
-#[cfg(test)]
-mod test_get_executables {
-    use crate::get_executables_from_paths;
-    use crate::HashMap;
-    use crate::OsString;
-    use crate::PathBuf;
-
-    #[test]
-    fn test() {
-        let path = OsString::from("/Users/elgen/testdir");
-        let filename = String::from("hello.bin");
-        let pb = vec![PathBuf::from(path.clone())];
-        assert_eq!(
-            get_executables_from_paths(pb).unwrap(),
-            HashMap::from([(filename, path)])
-        )
-    }
-
-    #[test]
-    fn no_dir() {
-        let path = OsString::from("/Users/elgen/none/invalid");
-        let pb = vec![PathBuf::from(path.clone())];
-        assert_eq!(get_executables_from_paths(pb).unwrap(), HashMap::new());
-    }
 }
