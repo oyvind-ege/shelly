@@ -124,7 +124,11 @@ impl Execute for TypeCommand {
             }
             Some(arg) if COMMANDS.contains(&arg.as_str()) => println!("{} is a shell builtin", arg),
             Some(arg) if self.valid_commands.contains_key(arg) => {
-                println!("{} is {:?}", arg, self.valid_commands.get(arg).unwrap())
+                println!(
+                    "{} is {}",
+                    arg,
+                    self.valid_commands.get(arg).unwrap().to_str().unwrap()
+                )
             }
             Some(_) => todo!(),
             None => println!("Wrong usage"), //this right here is the entry point for a manpage message
