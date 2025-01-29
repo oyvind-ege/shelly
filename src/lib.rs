@@ -8,7 +8,6 @@ pub fn get_executables_from_paths(pbs: Vec<PathBuf>) -> io::Result<HashMap<Strin
     let mut executables: HashMap<String, OsString> = HashMap::new();
     for dir in pbs {
         if dir.is_dir() {
-            let directory_path = dir.clone().into_os_string();
             for entry in fs::read_dir(&dir)? {
                 let entry = entry?;
                 let path = entry.path();
@@ -19,7 +18,7 @@ pub fn get_executables_from_paths(pbs: Vec<PathBuf>) -> io::Result<HashMap<Strin
                         .to_os_string()
                         .into_string()
                         .unwrap();
-                    executables.insert(binary_name, directory_path.clone());
+                    executables.insert(binary_name, path.clone().into_os_string());
                 }
             }
         }
@@ -48,7 +47,6 @@ mod test_get_executables {
     #[test]
     fn no_dir() {
         let path = OsString::from("/Users/elgen/none/invalid");
-        let filename = String::from("testing.bin");
         let pb = vec![PathBuf::from(path.clone())];
         assert_eq!(get_executables_from_paths(pb).unwrap(), HashMap::new());
     }
