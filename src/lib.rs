@@ -7,7 +7,6 @@ use std::path::PathBuf;
 pub fn get_executables_from_paths(pbs: Vec<PathBuf>) -> io::Result<HashMap<String, OsString>> {
     let mut executables: HashMap<String, OsString> = HashMap::new();
     for dir in pbs {
-        println!("Dir set to: {:?}", dir);
         if dir.is_dir() {
             for entry in fs::read_dir(&dir)? {
                 let entry = entry?;
@@ -22,10 +21,6 @@ pub fn get_executables_from_paths(pbs: Vec<PathBuf>) -> io::Result<HashMap<Strin
 
                     if !executables.contains_key(&binary_name) {
                         executables.insert(binary_name.clone(), path.clone().into_os_string());
-                    }
-                    if dir == PathBuf::from("/Users/elgen/testdir") {
-                        println!("Entry is: {:?}", binary_name);
-                        println!("Match: {:?}", executables.get(&binary_name).unwrap());
                     }
                 }
             }
