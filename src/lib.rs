@@ -7,12 +7,10 @@ use std::path::PathBuf;
 pub fn get_executables_from_paths(pbs: Vec<PathBuf>) -> io::Result<HashMap<String, OsString>> {
     let mut executables: HashMap<String, OsString> = HashMap::new();
     for dir in pbs {
-        println!("Directory: {:?}", dir);
         if dir.is_dir() {
             let directory_path = dir.clone().into_os_string();
             for entry in fs::read_dir(&dir)? {
                 let entry = entry?;
-                println!("Entry: {:?}", entry);
                 let path = entry.path();
                 if path.is_file() {
                     let binary_name = path
@@ -30,7 +28,7 @@ pub fn get_executables_from_paths(pbs: Vec<PathBuf>) -> io::Result<HashMap<Strin
 }
 
 #[cfg(test)]
-mod tests {
+mod test_get_executables {
     use crate::get_executables_from_paths;
     use crate::HashMap;
     use crate::OsString;

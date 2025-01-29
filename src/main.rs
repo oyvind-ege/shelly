@@ -1,11 +1,13 @@
 use codecrafters_shell::get_executables_from_paths;
 use std::collections::HashMap;
+use std::env;
+use std::ffi::OsString;
 use std::io::{self, Write};
 use std::path::PathBuf;
 use std::process::{self};
 extern crate exitcode;
 
-/**
+/*
 TODO:
 
     - Move all logic into a separate lib
@@ -37,7 +39,7 @@ struct EchoCommand {
 #[derive(Debug)]
 struct TypeCommand {
     args: Vec<String>,
-    valid_commands: HashMap<String, PathBuf>,
+    valid_commands: HashMap<String, OsString>,
 }
 
 #[derive(Debug)]
@@ -50,7 +52,7 @@ impl Command {
         Command { args: vec![] }
     }
 
-    fn parse(&mut self, input: String) -> Box<dyn Execute> {
+    fn parse(&mut self, input: String) -> Result<Box<dyn Execute>, io::Error> {
         let split_input = input.split_whitespace().collect::<Vec<&str>>();
 
         // TODO: Consider moving parse() into command-specific implementation. That way we can sooner catch incorrect usage.
@@ -63,22 +65,31 @@ impl Command {
             [].to_vec()
         };
 
+        let pbs = get_executables_from_paths(get_paths())?;
+
         match split_input[0] {
-            cmd if !COMMANDS.contains(&cmd) => Box::new(InvalidCommand {
+            cmd if !COMMANDS.contains(&cmd) => Ok(Box::new(InvalidCommand {
                 args: cmd.to_string(),
-            }),
-            "exit" => Box::new(ExitCommand {
+            })),
+            "exit" => Ok(Box::new(ExitCommand {
                 args: self.args.clone(),
-            }),
-            "echo" => Box::new(EchoCommand {
+            })),
+            "echo" => Ok(Box::new(EchoCommand {
                 args: self.args.clone(),
-            }),
-            "type" => Box::new(TypeCommand {
+            })),
+            "type" => Ok(Box::new(TypeCommand {
                 args: self.args.clone(),
-                valid_commands: HashMap::new(),
-            }),
+                valid_commands: pbs,
+            })),
             _ => todo!(),
         }
+    }
+}
+
+fn get_paths() -> Vec<PathBuf> {
+    match env::var_os("PATH") {
+        Some(v) => env::split_paths(&v).collect(),
+        None => todo!(),
     }
 }
 
@@ -121,7 +132,7 @@ impl Execute for TypeCommand {
     }
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     loop {
         print!("$ ");
         io::stdout().flush().unwrap();
@@ -130,9 +141,6 @@ fn main() {
         let stdin = io::stdin();
         let mut input = String::new();
         stdin.read_line(&mut input).unwrap();
-        Command::new().parse(input.trim().to_string()).execute();
+        Command::new().parse(input.trim().to_string())?.execute();
     }
 }
-
-#[cfg(test)]
-mod tests {}
