@@ -1,9 +1,7 @@
-use codecrafters_shell::get_executables_from_paths;
+use codecrafters_shell::{get_executables_from_paths, get_paths};
 use std::collections::HashMap;
-use std::env;
 use std::ffi::OsString;
 use std::io::{self, Write};
-use std::path::PathBuf;
 use std::process::{self};
 extern crate exitcode;
 
@@ -83,13 +81,6 @@ impl Command {
             })),
             _ => todo!(),
         }
-    }
-}
-
-fn get_paths() -> Vec<PathBuf> {
-    match env::var_os("PATH") {
-        Some(v) => env::split_paths(&v).collect(),
-        None => todo!(),
     }
 }
 

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::env;
 use std::ffi::OsString;
 use std::fs;
 use std::io;
@@ -27,4 +28,12 @@ pub fn get_executables_from_paths(pbs: Vec<PathBuf>) -> io::Result<HashMap<Strin
         }
     }
     Ok(executables)
+}
+
+pub fn get_paths() -> Vec<PathBuf> {
+    match env::var_os("PATH") {
+        Some(v) => env::split_paths(&v).collect(),
+
+        None => todo!(),
+    }
 }
