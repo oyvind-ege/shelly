@@ -1,28 +1,23 @@
 use codecrafters_shell::{get_executables_from_paths, get_paths};
+use core::error;
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::io::{self, Write};
 use std::process::{self};
 extern crate exitcode;
 
-/*
-TODO:
-
-    - Move all logic into a separate lib
-    - Implement PATH logic using std::env::var_os and split_path
-*/
-
-// This list is currently decoupled from the actual existence of command structs and implementations of Execute. Perhaps that is fine.
 static COMMANDS: [&str; 3] = ["exit", "echo", "type"];
 
 trait Execute {
     fn execute(&self);
 }
 
-#[derive(Debug)]
-struct Command {
-    args: Vec<String>,
+trait Parse {
+    fn parse(&self) -> Result<Box<dyn Execute>, Box<dyn error::Error>>;
 }
+
+#[derive(Debug)]
+struct Shell {}
 
 #[derive(Debug)]
 struct ExitCommand {
@@ -45,16 +40,11 @@ struct InvalidCommand {
     args: String,
 }
 
-impl Command {
-    fn new() -> Self {
-        Command { args: vec![] }
-    }
-
-    fn parse(&mut self, input: String) -> Result<Box<dyn Execute>, io::Error> {
+impl Shell {
+    fn initiate(input: String) -> Box<dyn Parse> {
         let split_input = input.split_whitespace().collect::<Vec<&str>>();
 
-        // TODO: Consider moving parse() into command-specific implementation. That way we can sooner catch incorrect usage.
-        self.args = if split_input.len() > 1 {
+        let args = if split_input.len() > 1 {
             split_input[1..]
                 .iter()
                 .map(|arg| arg.to_string())
@@ -63,24 +53,53 @@ impl Command {
             [].to_vec()
         };
 
-        let pbs = get_executables_from_paths(get_paths())?;
-
         match split_input[0] {
-            cmd if !COMMANDS.contains(&cmd) => Ok(Box::new(InvalidCommand {
+            cmd if !COMMANDS.contains(&cmd) => Box::new(InvalidCommand {
                 args: cmd.to_string(),
-            })),
-            "exit" => Ok(Box::new(ExitCommand {
-                args: self.args.clone(),
-            })),
-            "echo" => Ok(Box::new(EchoCommand {
-                args: self.args.clone(),
-            })),
-            "type" => Ok(Box::new(TypeCommand {
-                args: self.args.clone(),
-                valid_commands: pbs,
-            })),
+            }),
+            "exit" => Box::new(ExitCommand { args: args.clone() }),
+            "echo" => Box::new(EchoCommand { args: args.clone() }),
+            "type" => Box::new(TypeCommand {
+                args: args.clone(),
+                valid_commands: HashMap::with_capacity(100),
+            }),
             _ => todo!(),
         }
+    }
+}
+
+impl Parse for InvalidCommand {
+    fn parse(&self) -> Result<Box<dyn Execute>, Box<dyn error::Error>> {
+        Ok(Box::new(Self {
+            args: self.args.clone(),
+        }))
+    }
+}
+
+impl Parse for ExitCommand {
+    fn parse(&self) -> Result<Box<dyn Execute>, Box<dyn error::Error>> {
+        Ok(Box::new(Self {
+            args: self.args.clone(),
+        }))
+    }
+}
+
+impl Parse for EchoCommand {
+    fn parse(&self) -> Result<Box<dyn Execute>, Box<dyn error::Error>> {
+        Ok(Box::new(Self {
+            args: self.args.clone(),
+        }))
+    }
+}
+
+impl Parse for TypeCommand {
+    fn parse(&self) -> Result<Box<dyn Execute>, Box<dyn error::Error>> {
+        let pbs = get_executables_from_paths(get_paths())?;
+
+        Ok(Box::new(TypeCommand {
+            args: self.args.clone(),
+            valid_commands: pbs,
+        }))
     }
 }
 
@@ -136,6 +155,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let stdin = io::stdin();
         let mut input = String::new();
         stdin.read_line(&mut input).unwrap();
-        Command::new().parse(input.trim().to_string())?.execute();
+        Shell::initiate(input.trim().to_string()).parse()?.execute();
     }
 }
