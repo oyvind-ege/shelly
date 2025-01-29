@@ -19,9 +19,9 @@ pub fn get_executables_from_paths(pbs: Vec<PathBuf>) -> io::Result<HashMap<Strin
                         .into_string()
                         .unwrap();
 
-                    executables
-                        .entry(binary_name)
-                        .or_insert(path.clone().into_os_string());
+                    if !executables.contains_key(&binary_name) {
+                        executables.insert(binary_name.clone(), path.clone().into_os_string());
+                    }
                 }
             }
         }
