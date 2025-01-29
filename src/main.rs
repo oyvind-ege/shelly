@@ -1,7 +1,16 @@
+use codecrafters_shell::get_executables_from_paths;
+use std::collections::HashMap;
 use std::io::{self, Write};
+use std::path::PathBuf;
 use std::process::{self};
-
 extern crate exitcode;
+
+/**
+TODO:
+
+    - Move all logic into a separate lib
+    - Implement PATH logic using std::env::var_os and split_path
+*/
 
 // This list is currently decoupled from the actual existence of command structs and implementations of Execute. Perhaps that is fine.
 static COMMANDS: [&str; 3] = ["exit", "echo", "type"];
@@ -28,6 +37,7 @@ struct EchoCommand {
 #[derive(Debug)]
 struct TypeCommand {
     args: Vec<String>,
+    valid_commands: HashMap<String, PathBuf>,
 }
 
 #[derive(Debug)]
@@ -65,6 +75,7 @@ impl Command {
             }),
             "type" => Box::new(TypeCommand {
                 args: self.args.clone(),
+                valid_commands: HashMap::new(),
             }),
             _ => todo!(),
         }
@@ -95,8 +106,16 @@ impl Execute for InvalidCommand {
 impl Execute for TypeCommand {
     fn execute(&self) {
         match self.args.first() {
-            Some(arg) if !COMMANDS.contains(&arg.as_str()) => println!("{}: not found", arg),
-            Some(arg) => println!("{} is a shell builtin", arg),
+            Some(arg)
+                if !COMMANDS.contains(&arg.as_str()) && !self.valid_commands.contains_key(arg) =>
+            {
+                println!("{}: not found", arg)
+            }
+            Some(arg) if COMMANDS.contains(&arg.as_str()) => println!("{} is a shell builtin", arg),
+            Some(arg) if self.valid_commands.contains_key(arg) => {
+                println!("{} is {:?}", arg, self.valid_commands.get(arg).unwrap())
+            }
+            Some(_) => todo!(),
             None => println!("Wrong usage"), //this right here is the entry point for a manpage message
         };
     }
@@ -114,3 +133,6 @@ fn main() {
         Command::new().parse(input.trim().to_string()).execute();
     }
 }
+
+#[cfg(test)]
+mod tests {}
