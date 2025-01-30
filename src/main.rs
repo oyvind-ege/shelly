@@ -3,6 +3,7 @@ use core::error;
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::io::{self, Write};
+use std::process::Command;
 use std::process::{self};
 extern crate exitcode;
 
@@ -40,8 +41,17 @@ struct InvalidCommand {
     args: String,
 }
 
+#[derive(Debug)]
+struct RunCommand {
+    args: Vec<String>,
+    command: (String, OsString),
+}
+
 impl Shell {
-    fn initiate(input: String) -> Box<dyn Parse> {
+    fn initiate(
+        input: String,
+        valid_external_commands: HashMap<String, OsString>,
+    ) -> Result<Box<dyn Parse>, Box<dyn error::Error>> {
         let split_input = input.split_whitespace().collect::<Vec<&str>>();
 
         let args = if split_input.len() > 1 {
@@ -53,18 +63,43 @@ impl Shell {
             [].to_vec()
         };
 
-        match split_input[0] {
-            cmd if !COMMANDS.contains(&cmd) => Box::new(InvalidCommand {
-                args: cmd.to_string(),
-            }),
-            "exit" => Box::new(ExitCommand { args: args.clone() }),
-            "echo" => Box::new(EchoCommand { args: args.clone() }),
-            "type" => Box::new(TypeCommand {
+        let command = split_input[0];
+        let mut command_info: (String, OsString) = (String::from(""), OsString::from(""));
+
+        if valid_external_commands.contains_key(command) {
+            let command_borrowed = valid_external_commands.get_key_value(command).unwrap();
+            command_info.0 = command_borrowed.0.to_string();
+            command_info.1 = command_borrowed.1.to_owned();
+        }
+
+        match command {
+            cmd if !COMMANDS.contains(&cmd) && !valid_external_commands.contains_key(cmd) => {
+                Ok(Box::new(InvalidCommand {
+                    args: cmd.to_string(),
+                }))
+            }
+            "exit" => Ok(Box::new(ExitCommand { args: args.clone() })),
+            "echo" => Ok(Box::new(EchoCommand { args: args.clone() })),
+            "type" => Ok(Box::new(TypeCommand {
                 args: args.clone(),
                 valid_commands: HashMap::with_capacity(100),
-            }),
+            })),
+            cmd if valid_external_commands.contains_key(cmd) => Ok(Box::new(RunCommand {
+                args: args.clone(),
+                command: command_info,
+            })),
+
             _ => todo!(),
         }
+    }
+}
+
+impl Parse for RunCommand {
+    fn parse(&self) -> Result<Box<dyn Execute>, Box<dyn error::Error>> {
+        Ok(Box::new(Self {
+            args: self.args.clone(),
+            command: self.command.clone(),
+        }))
     }
 }
 
@@ -124,6 +159,17 @@ impl Execute for InvalidCommand {
     }
 }
 
+impl Execute for RunCommand {
+    fn execute(&self) {
+        let output = Command::new(self.command.1.clone())
+            .args(self.args.clone())
+            .output()
+            .expect("Failed");
+
+        io::stdout().write_all(&output.stdout).unwrap();
+    }
+}
+
 impl Execute for TypeCommand {
     fn execute(&self) {
         match self.args.first() {
@@ -155,6 +201,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let stdin = io::stdin();
         let mut input = String::new();
         stdin.read_line(&mut input).unwrap();
-        Shell::initiate(input.trim().to_string()).parse()?.execute();
+        let valid_commands = get_executables_from_paths(get_paths()).unwrap_or(HashMap::new());
+        Shell::initiate(input.trim().to_string(), valid_commands)?
+            .parse()?
+            .execute();
     }
 }
