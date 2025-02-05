@@ -7,11 +7,12 @@ use std::collections::HashMap;
 use std::env;
 use std::ffi::OsString;
 use std::io::{self, Write};
+use std::path::Path;
 use std::process::Command;
 use std::process::{self};
 extern crate exitcode;
 
-static BUILTINS: [&str; 4] = ["exit", "echo", "type", "pwd"];
+static BUILTINS: [&str; 5] = ["exit", "echo", "type", "pwd", "cd"];
 
 trait Execute {
     fn execute(&self);
@@ -50,6 +51,11 @@ struct RunCommand {
 #[derive(Debug)]
 struct PwdCommand {}
 
+#[derive(Debug)]
+struct CdCommand {
+    args: Vec<String>,
+}
+
 impl Shell {
     fn initiate(
         input: String,
@@ -70,6 +76,7 @@ impl Shell {
                 valid_commands: valid_external_commands,
             })),
             "pwd" => Ok(Box::new(PwdCommand {})),
+            "cd" => Ok(Box::new(CdCommand { args: args.clone() })),
             cmd if valid_external_commands.contains_key(cmd) => Ok(Box::new(RunCommand {
                 args: args.clone(),
                 command: get_command_info(&valid_external_commands, cmd),
@@ -137,6 +144,22 @@ impl Execute for TypeCommand {
 impl Execute for PwdCommand {
     fn execute(&self) {
         println!("{}", env::current_dir().expect("No current dir").display());
+    }
+}
+
+impl Execute for CdCommand {
+    fn execute(&self) {
+        if let Some(path) = self.args.first() {
+            match path {
+                path if path == &"~".to_string() => {
+                    env::set_current_dir(homedir::my_home().expect("fail").unwrap().as_path())
+                        .expect("fail")
+                }
+                path => {
+                    env::set_current_dir(Path::new(path)).expect("fail");
+                }
+            }
+        }
     }
 }
 
