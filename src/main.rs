@@ -51,9 +51,7 @@ impl Shell {
         input: String,
         valid_external_commands: HashMap<String, OsString>,
     ) -> Result<Box<dyn Execute>, Box<dyn error::Error>> {
-        let (command, args) = parse_command_and_arguments(input);
-
-        let command = &command[..];
+        let (command, args) = parse_command_and_arguments(&input);
 
         match command {
             cmd if !BUILTINS.contains(&cmd) && !valid_external_commands.contains_key(cmd) => {
@@ -140,7 +138,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let stdin = io::stdin();
         let mut input = String::new();
         stdin.read_line(&mut input).unwrap();
-        let valid_commands = get_executables_from_paths(get_paths()).unwrap_or(HashMap::new());
+        let valid_commands = get_executables_from_paths(get_paths()).unwrap_or_default();
         Shell::initiate(input.trim().to_string(), valid_commands)?.execute();
     }
 }
