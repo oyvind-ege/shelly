@@ -13,10 +13,6 @@ trait Execute {
     fn execute(&self);
 }
 
-trait Parse {
-    fn parse(&self) -> Result<Box<dyn Execute>, Box<dyn error::Error>>;
-}
-
 #[derive(Debug)]
 struct Shell {}
 
@@ -51,7 +47,7 @@ impl Shell {
     fn initiate(
         input: String,
         valid_external_commands: HashMap<String, OsString>,
-    ) -> Result<Box<dyn Parse>, Box<dyn error::Error>> {
+    ) -> Result<Box<dyn Execute>, Box<dyn error::Error>> {
         let (command, args) = parse_command_and_arguments(input);
 
         let command = &command[..];
@@ -74,7 +70,7 @@ impl Shell {
             "echo" => Ok(Box::new(EchoCommand { args: args.clone() })),
             "type" => Ok(Box::new(TypeCommand {
                 args: args.clone(),
-                valid_commands: HashMap::with_capacity(100),
+                valid_commands: valid_external_commands,
             })),
             cmd if valid_external_commands.contains_key(cmd) => Ok(Box::new(RunCommand {
                 args: args.clone(),
@@ -83,50 +79,6 @@ impl Shell {
 
             _ => todo!(),
         }
-    }
-}
-
-impl Parse for RunCommand {
-    fn parse(&self) -> Result<Box<dyn Execute>, Box<dyn error::Error>> {
-        Ok(Box::new(Self {
-            args: self.args.clone(),
-            command: self.command.clone(),
-        }))
-    }
-}
-
-impl Parse for InvalidCommand {
-    fn parse(&self) -> Result<Box<dyn Execute>, Box<dyn error::Error>> {
-        Ok(Box::new(Self {
-            args: self.args.clone(),
-        }))
-    }
-}
-
-impl Parse for ExitCommand {
-    fn parse(&self) -> Result<Box<dyn Execute>, Box<dyn error::Error>> {
-        Ok(Box::new(Self {
-            args: self.args.clone(),
-        }))
-    }
-}
-
-impl Parse for EchoCommand {
-    fn parse(&self) -> Result<Box<dyn Execute>, Box<dyn error::Error>> {
-        Ok(Box::new(Self {
-            args: self.args.clone(),
-        }))
-    }
-}
-
-impl Parse for TypeCommand {
-    fn parse(&self) -> Result<Box<dyn Execute>, Box<dyn error::Error>> {
-        let pbs = get_executables_from_paths(get_paths())?;
-
-        Ok(Box::new(TypeCommand {
-            args: self.args.clone(),
-            valid_commands: pbs,
-        }))
     }
 }
 
@@ -194,8 +146,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut input = String::new();
         stdin.read_line(&mut input).unwrap();
         let valid_commands = get_executables_from_paths(get_paths()).unwrap_or(HashMap::new());
-        Shell::initiate(input.trim().to_string(), valid_commands)?
-            .parse()?
-            .execute();
+        Shell::initiate(input.trim().to_string(), valid_commands)?.execute();
     }
 }
