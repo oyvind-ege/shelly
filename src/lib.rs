@@ -55,6 +55,19 @@ pub fn parse_command_and_arguments(input: String) -> (String, Vec<String>) {
     (command, args)
 }
 
+pub fn get_command_info(
+    valid_external_commands: &HashMap<String, OsString>,
+    command: &str,
+) -> (String, OsString) {
+    let command_borrowed = valid_external_commands.get_key_value(command).unwrap();
+    let command_info: (String, OsString) = (
+        command_borrowed.0.to_string(),
+        command_borrowed.1.to_owned(),
+    );
+
+    command_info
+}
+
 #[cfg(test)]
 mod tests {
 

@@ -1,4 +1,6 @@
-use codecrafters_shell::{get_executables_from_paths, get_paths, parse_command_and_arguments};
+use codecrafters_shell::{
+    get_command_info, get_executables_from_paths, get_paths, parse_command_and_arguments,
+};
 use core::error;
 use std::collections::HashMap;
 use std::ffi::OsString;
@@ -52,14 +54,6 @@ impl Shell {
 
         let command = &command[..];
 
-        let mut command_info: (String, OsString) = (String::from(""), OsString::from(""));
-
-        if valid_external_commands.contains_key(command) {
-            let command_borrowed = valid_external_commands.get_key_value(command).unwrap();
-            command_info.0 = command_borrowed.0.to_string();
-            command_info.1 = command_borrowed.1.to_owned();
-        }
-
         match command {
             cmd if !BUILTINS.contains(&cmd) && !valid_external_commands.contains_key(cmd) => {
                 Ok(Box::new(InvalidCommand {
@@ -74,7 +68,7 @@ impl Shell {
             })),
             cmd if valid_external_commands.contains_key(cmd) => Ok(Box::new(RunCommand {
                 args: args.clone(),
-                command: command_info,
+                command: get_command_info(&valid_external_commands, cmd),
             })),
 
             _ => todo!(),
