@@ -3,11 +3,11 @@ use core::error;
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::io::{self, Write};
+use std::process::Command;
 use std::process::{self};
-use std::process::{Command, CommandArgs};
 extern crate exitcode;
 
-static COMMANDS: [&str; 3] = ["exit", "echo", "type"];
+static BUILTINS: [&str; 3] = ["exit", "echo", "type"];
 
 trait Execute {
     fn execute(&self);
@@ -65,7 +65,7 @@ impl Shell {
         }
 
         match command {
-            cmd if !COMMANDS.contains(&cmd) && !valid_external_commands.contains_key(cmd) => {
+            cmd if !BUILTINS.contains(&cmd) && !valid_external_commands.contains_key(cmd) => {
                 Ok(Box::new(InvalidCommand {
                     args: cmd.to_string(),
                 }))
@@ -166,11 +166,11 @@ impl Execute for TypeCommand {
     fn execute(&self) {
         match self.args.first() {
             Some(arg)
-                if !COMMANDS.contains(&arg.as_str()) && !self.valid_commands.contains_key(arg) =>
+                if !BUILTINS.contains(&arg.as_str()) && !self.valid_commands.contains_key(arg) =>
             {
                 println!("{}: not found", arg)
             }
-            Some(arg) if COMMANDS.contains(&arg.as_str()) => println!("{} is a shell builtin", arg),
+            Some(arg) if BUILTINS.contains(&arg.as_str()) => println!("{} is a shell builtin", arg),
             Some(arg) if self.valid_commands.contains_key(arg) => {
                 println!(
                     "{} is {}",
