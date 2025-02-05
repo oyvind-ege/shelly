@@ -37,3 +37,51 @@ pub fn get_paths() -> Vec<PathBuf> {
         None => todo!(),
     }
 }
+
+pub fn parse_command_and_arguments(input: String) -> (String, Vec<String>) {
+    let split_input = input.split_whitespace().collect::<Vec<&str>>();
+
+    let args = if split_input.len() > 1 {
+        split_input[1..]
+            .iter()
+            .map(|arg| arg.to_string())
+            .collect::<Vec<String>>()
+    } else {
+        [].to_vec()
+    };
+
+    let command = split_input[0].to_string();
+
+    (command, args)
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::parse_command_and_arguments;
+
+    #[test]
+    fn test_parse_command() {
+        let input = String::from("cmd x y z");
+        let cmd = "cmd".to_string();
+        let args = vec!["x".to_string(), "y".to_string(), "z".to_string()];
+        assert_eq!(parse_command_and_arguments(input), (cmd, args));
+    }
+
+    #[test]
+    fn test_empty_args() {
+        let input = String::from("cmd");
+        let cmd = String::from("cmd");
+        let args: Vec<String> = vec![];
+        assert_eq!(parse_command_and_arguments(input), (cmd, args));
+    }
+
+    #[test]
+    fn test_whitespace() {
+        let input = String::from("cmd   ");
+        let cmd = String::from("cmd");
+        let args: Vec<String> = vec![];
+
+        assert_eq!(parse_command_and_arguments(input), (cmd, args));
+    }
+}

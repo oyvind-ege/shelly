@@ -1,10 +1,10 @@
-use codecrafters_shell::{get_executables_from_paths, get_paths};
+use codecrafters_shell::{get_executables_from_paths, get_paths, parse_command_and_arguments};
 use core::error;
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::io::{self, Write};
-use std::process::Command;
 use std::process::{self};
+use std::process::{Command, CommandArgs};
 extern crate exitcode;
 
 static COMMANDS: [&str; 3] = ["exit", "echo", "type"];
@@ -52,18 +52,10 @@ impl Shell {
         input: String,
         valid_external_commands: HashMap<String, OsString>,
     ) -> Result<Box<dyn Parse>, Box<dyn error::Error>> {
-        let split_input = input.split_whitespace().collect::<Vec<&str>>();
+        let (command, args) = parse_command_and_arguments(input);
 
-        let args = if split_input.len() > 1 {
-            split_input[1..]
-                .iter()
-                .map(|arg| arg.to_string())
-                .collect::<Vec<String>>()
-        } else {
-            [].to_vec()
-        };
+        let command = &command[..];
 
-        let command = split_input[0];
         let mut command_info: (String, OsString) = (String::from(""), OsString::from(""));
 
         if valid_external_commands.contains_key(command) {
