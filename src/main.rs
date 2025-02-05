@@ -1,5 +1,6 @@
 use codecrafters_shell::{
     get_command_info, get_executables_from_paths, get_paths, parse_command_and_arguments,
+    CommandInfo,
 };
 use core::error;
 use std::collections::HashMap;
@@ -42,7 +43,7 @@ struct InvalidCommand {
 #[derive(Debug)]
 struct RunCommand {
     args: Vec<String>,
-    command: (String, OsString),
+    command: CommandInfo,
 }
 
 impl Shell {
@@ -99,7 +100,7 @@ impl Execute for InvalidCommand {
 
 impl Execute for RunCommand {
     fn execute(&self) {
-        let output = Command::new(self.command.1.clone())
+        let output = Command::new(self.command.bin.clone())
             .args(self.args.clone())
             .output()
             .expect("Failed");
@@ -111,17 +112,17 @@ impl Execute for RunCommand {
 impl Execute for TypeCommand {
     fn execute(&self) {
         match self.args.first() {
-            Some(arg)
-                if !BUILTINS.contains(&arg.as_str()) && !self.valid_commands.contains_key(arg) =>
+            Some(bin)
+                if !BUILTINS.contains(&bin.as_str()) && !self.valid_commands.contains_key(bin) =>
             {
-                println!("{}: not found", arg)
+                println!("{}: not found", bin)
             }
-            Some(arg) if BUILTINS.contains(&arg.as_str()) => println!("{} is a shell builtin", arg),
-            Some(arg) if self.valid_commands.contains_key(arg) => {
+            Some(bin) if BUILTINS.contains(&bin.as_str()) => println!("{} is a shell builtin", bin),
+            Some(bin) if self.valid_commands.contains_key(bin) => {
                 println!(
                     "{} is {}",
-                    arg,
-                    self.valid_commands.get(arg).unwrap().to_str().unwrap()
+                    bin,
+                    self.valid_commands.get(bin).unwrap().to_str().unwrap()
                 )
             }
             Some(_) => todo!(),

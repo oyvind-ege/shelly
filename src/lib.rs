@@ -5,6 +5,12 @@ use std::fs;
 use std::io;
 use std::path::PathBuf;
 
+#[derive(Debug)]
+pub struct CommandInfo {
+    pub bin: String,
+    pub path: OsString,
+}
+
 pub fn get_executables_from_paths(pbs: Vec<PathBuf>) -> io::Result<HashMap<String, OsString>> {
     let mut executables: HashMap<String, OsString> = HashMap::new();
     for dir in pbs {
@@ -58,14 +64,13 @@ pub fn parse_command_and_arguments(input: String) -> (String, Vec<String>) {
 pub fn get_command_info(
     valid_external_commands: &HashMap<String, OsString>,
     command: &str,
-) -> (String, OsString) {
+) -> CommandInfo {
     let command_borrowed = valid_external_commands.get_key_value(command).unwrap();
-    let command_info: (String, OsString) = (
-        command_borrowed.0.to_string(),
-        command_borrowed.1.to_owned(),
-    );
 
-    command_info
+    CommandInfo {
+        bin: command_borrowed.0.to_string(),
+        path: command_borrowed.1.to_owned(),
+    }
 }
 
 #[cfg(test)]
