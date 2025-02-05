@@ -4,13 +4,14 @@ use codecrafters_shell::{
 };
 use core::error;
 use std::collections::HashMap;
+use std::env;
 use std::ffi::OsString;
 use std::io::{self, Write};
 use std::process::Command;
 use std::process::{self};
 extern crate exitcode;
 
-static BUILTINS: [&str; 3] = ["exit", "echo", "type"];
+static BUILTINS: [&str; 4] = ["exit", "echo", "type", "pwd"];
 
 trait Execute {
     fn execute(&self);
@@ -46,6 +47,9 @@ struct RunCommand {
     command: CommandInfo,
 }
 
+#[derive(Debug)]
+struct PwdCommand {}
+
 impl Shell {
     fn initiate(
         input: String,
@@ -65,6 +69,7 @@ impl Shell {
                 args: args.clone(),
                 valid_commands: valid_external_commands,
             })),
+            "pwd" => Ok(Box::new(PwdCommand {})),
             cmd if valid_external_commands.contains_key(cmd) => Ok(Box::new(RunCommand {
                 args: args.clone(),
                 command: get_command_info(&valid_external_commands, cmd),
@@ -126,6 +131,12 @@ impl Execute for TypeCommand {
             Some(_) => todo!(),
             None => println!("Wrong usage"), //this right here is the entry point for a manpage message
         };
+    }
+}
+
+impl Execute for PwdCommand {
+    fn execute(&self) {
+        println!("{}", env::current_dir().expect("No current dir").display());
     }
 }
 
