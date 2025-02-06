@@ -82,7 +82,7 @@ impl Shell {
                 command: get_command_info(&valid_external_commands, cmd),
             })),
 
-            _ => todo!(),
+            _ => Err("Try again.".into()),
         }
     }
 }
@@ -135,8 +135,8 @@ impl Execute for TypeCommand {
                     self.valid_commands.get(bin).unwrap().to_str().unwrap()
                 )
             }
-            Some(_) => todo!(),
             None => println!("Wrong usage"), //this right here is the entry point for a manpage message
+            Some(_) => println!(),
         };
     }
 }
@@ -151,12 +151,16 @@ impl Execute for CdCommand {
     fn execute(&self) {
         if let Some(path) = self.args.first() {
             match path {
-                path if path == &"~".to_string() => {
-                    env::set_current_dir(homedir::my_home().expect("fail").unwrap().as_path())
-                        .expect("fail")
-                }
+                path if path == &"~".to_string() => env::set_current_dir(
+                    homedir::my_home()
+                        .expect("Failed to get HOME directory value.")
+                        .unwrap()
+                        .as_path(),
+                )
+                .expect("Failed to set current directory."),
                 path => {
-                    env::set_current_dir(Path::new(path)).expect("fail");
+                    env::set_current_dir(Path::new(path))
+                        .unwrap_or_else(|_err| println!("cd: {}: No such file or directory", path));
                 }
             }
         }
