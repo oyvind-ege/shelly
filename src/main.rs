@@ -151,13 +151,13 @@ impl Execute for CdCommand {
     fn execute(&self) {
         if let Some(path) = self.args.first() {
             match path {
-                path if path == &"~".to_string() => env::set_current_dir(
-                    homedir::my_home()
-                        .expect("Failed to get HOME directory value.")
-                        .unwrap()
-                        .as_path(),
-                )
-                .expect("Failed to set current directory."),
+                path if path == &"~".to_string() => {
+                    env::set_current_dir(env::var_os("HOME").unwrap_or_else(|| {
+                        println!("No HOME directory found.");
+                        Path::new("").into()
+                    }))
+                    .expect("Failed to set current directory.")
+                }
                 path => {
                     env::set_current_dir(Path::new(path))
                         .unwrap_or_else(|_err| println!("cd: {}: No such file or directory", path));
