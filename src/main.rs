@@ -113,7 +113,7 @@ impl Execute for RunCommand {
         let output = Command::new(self.command.bin.clone())
             .args(self.args.clone())
             .output()
-            .expect("Failed");
+            .expect("Failed to run command.");
 
         io::stdout().write_all(&output.stdout).unwrap();
     }
