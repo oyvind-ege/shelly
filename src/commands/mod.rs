@@ -1,3 +1,4 @@
+mod util;
 use crate::CommandInfo;
 use std::collections::HashMap;
 use std::env;
@@ -48,6 +49,10 @@ pub struct CdCommand {
     args: Vec<String>,
 }
 
+/*******************************
+ ------------ Exit ------------
+*******************************/
+
 impl ExitCommand {
     pub fn new(args: Vec<String>) -> Self {
         ExitCommand { args }
@@ -63,6 +68,9 @@ impl Execute for ExitCommand {
     }
 }
 
+/*******************************
+ ------------ Echo ------------
+*******************************/
 impl EchoCommand {
     pub fn new(args: Vec<String>) -> Self {
         EchoCommand { args }
@@ -75,6 +83,9 @@ impl Execute for EchoCommand {
     }
 }
 
+/*******************************
+ ------------ Invalid ------------
+*******************************/
 impl InvalidCommand {
     pub fn new(args: String) -> Self {
         InvalidCommand { args }
@@ -87,6 +98,9 @@ impl Execute for InvalidCommand {
     }
 }
 
+/*******************************
+ ------------ Run ------------
+*******************************/
 impl RunCommand {
     pub fn new(args: Vec<String>, command: CommandInfo) -> Self {
         RunCommand { args, command }
@@ -104,6 +118,9 @@ impl Execute for RunCommand {
     }
 }
 
+/*******************************
+ ------------ Type ------------
+*******************************/
 impl TypeCommand {
     pub fn new(args: Vec<String>, valid_commands: HashMap<String, OsString>) -> Self {
         TypeCommand {
@@ -135,6 +152,9 @@ impl Execute for TypeCommand {
     }
 }
 
+/*******************************
+ ------------ PWD ------------
+*******************************/
 impl PwdCommand {
     pub fn new() -> Self {
         PwdCommand {}
@@ -147,6 +167,9 @@ impl Execute for PwdCommand {
     }
 }
 
+/*******************************
+ ------------ Cd ------------
+*******************************/
 impl CdCommand {
     pub fn new(args: Vec<String>) -> Self {
         CdCommand { args }
