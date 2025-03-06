@@ -1,5 +1,8 @@
+mod commands;
+use crate::commands::*;
 use std::collections::HashMap;
 use std::env;
+use std::error;
 use std::ffi::OsString;
 use std::fs;
 use std::io;
@@ -11,6 +14,33 @@ pub struct CommandInfo {
     pub path: OsString,
 }
 
+#[derive(Debug)]
+pub struct Shell {}
+
+impl Shell {
+    pub fn initiate(input: String) -> Result<Box<dyn Execute>, Box<dyn error::Error>> {
+        let (command, args) = parse_command_and_arguments(&input);
+        let valid_commands = get_executables_from_paths(get_paths()).unwrap_or_default();
+
+        match command {
+            cmd if !BUILTINS.contains(&cmd) && !valid_commands.contains_key(cmd) => {
+                Ok(Box::new(InvalidCommand::new(cmd.to_string())))
+            }
+            "exit" => Ok(Box::new(ExitCommand::new(args.clone()))),
+            "echo" => Ok(Box::new(EchoCommand::new(args.clone()))),
+            "type" => Ok(Box::new(TypeCommand::new(args.clone(), valid_commands))),
+            "pwd" => Ok(Box::new(PwdCommand::new())),
+            "cd" => Ok(Box::new(CdCommand::new(args.clone()))),
+
+            cmd if valid_commands.contains_key(cmd) => Ok(Box::new(RunCommand::new(
+                args.clone(),
+                get_command_info(&valid_commands, cmd),
+            ))),
+
+            _ => Err("Try again.".into()),
+        }
+    }
+}
 pub fn get_executables_from_paths(pbs: Vec<PathBuf>) -> io::Result<HashMap<String, OsString>> {
     let mut executables: HashMap<String, OsString> = HashMap::new();
     for dir in pbs {
@@ -61,11 +91,8 @@ pub fn parse_command_and_arguments(input: &str) -> (&str, Vec<String>) {
     (command, args)
 }
 
-pub fn get_command_info(
-    valid_external_commands: &HashMap<String, OsString>,
-    command: &str,
-) -> CommandInfo {
-    let command_borrowed = valid_external_commands.get_key_value(command).unwrap();
+pub fn get_command_info(valid_commands: &HashMap<String, OsString>, command: &str) -> CommandInfo {
+    let command_borrowed = valid_commands.get_key_value(command).unwrap();
 
     CommandInfo {
         bin: command_borrowed.0.to_string(),
