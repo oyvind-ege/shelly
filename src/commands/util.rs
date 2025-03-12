@@ -11,20 +11,16 @@ pub fn parse_args_from_str_with_quotes(str: &str) -> Vec<String> {
                     continue;
                 } else if str[index + 1..].contains("\'") {
                     tick_stack.push(char);
-                } else {
-                    continue;
                 }
             }
-            b' ' => match tick_stack.last() {
-                Some(b'\'') => parsed.push(char),
-                _ => {
-                    if !parsed.is_empty() {
-                        result
-                            .push(String::from_utf8(parsed.clone()).expect("Non-UTF8 encounted."));
-                        parsed.clear();
-                    }
+            b' ' => {
+                if let Some(b'\'') = tick_stack.last() {
+                    parsed.push(char);
+                } else if !parsed.is_empty() {
+                    result.push(String::from_utf8(parsed.clone()).expect("Non-UTF8 encounted."));
+                    parsed.clear();
                 }
-            },
+            }
             _ => parsed.push(char),
         }
     }
