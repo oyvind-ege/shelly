@@ -1,4 +1,6 @@
 mod commands;
+use util::parse_args_from_str_with_quotes;
+
 use crate::commands::*;
 use std::collections::HashMap;
 use std::env;
@@ -75,15 +77,11 @@ pub fn get_paths() -> Vec<PathBuf> {
 }
 
 pub fn parse_command_and_arguments(input: &str) -> (&str, Vec<String>) {
-    let split_input = input.split_whitespace().collect::<Vec<&str>>();
-
+    let split_input = input.splitn(2, ' ').collect::<Vec<&str>>();
     let args = if split_input.len() > 1 {
-        split_input[1..]
-            .iter()
-            .map(|arg| arg.to_string())
-            .collect::<Vec<String>>()
+        parse_args_from_str_with_quotes(split_input[1])
     } else {
-        [].to_vec()
+        vec![]
     };
 
     let command = split_input[0];
@@ -104,7 +102,6 @@ pub fn get_command_info(valid_commands: &HashMap<String, OsString>, command: &st
 mod tests {
 
     use super::parse_command_and_arguments;
-
     #[test]
     fn test_parse_command() {
         let input = String::from("cmd x y z");
