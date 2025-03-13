@@ -1,5 +1,5 @@
 mod commands;
-use util::parse_args_from_str_with_quotes;
+use util::parse_args;
 
 use crate::commands::*;
 use std::collections::HashMap;
@@ -79,7 +79,7 @@ pub fn get_paths() -> Vec<PathBuf> {
 pub fn parse_command_and_arguments(input: &str) -> (&str, Vec<String>) {
     let split_input = input.splitn(2, ' ').collect::<Vec<&str>>();
     let args = if split_input.len() > 1 {
-        parse_args_from_str_with_quotes(split_input[1])
+        parse_args(split_input[1])
     } else {
         vec![]
     };
