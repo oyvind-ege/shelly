@@ -1,27 +1,75 @@
 pub fn parse_args(str: &str) -> Vec<String> {
-    let mut tick_stack = vec![];
+    // let mut tick_stack: Vec<u8> = vec![];
     let mut parsed: Vec<u8> = vec![];
+    let mut double_quote_state = false;
+    let mut single_quote_state = false;
+    let mut escaped: bool = false;
+
+    static SINGLE_QUOTE: u8 = b'\'';
+    static DOUBLE_QUOTE: u8 = b'\"';
+
+    static SPECIAL_CHARS: [u8; 4] = [b'`', b'\\', b'\"', b'$'];
 
     let mut result: Vec<String> = vec![];
-    for (index, char) in str.bytes().enumerate() {
-        match char {
-            b'\'' => {
-                if let Some(b'\'') = tick_stack.last() {
+
+    println!("Str: {str:?}");
+
+    for char in str.bytes() {
+        if double_quote_state {
+            if char == DOUBLE_QUOTE && !escaped {
+                double_quote_state = false;
+                result.push(String::from_utf8(parsed.clone()).expect("Non-UTF8 encounted."));
+                parsed.clear();
+                continue;
+            } else if char == b'\\' && !escaped {
+                escaped = true;
+                continue;
+            } else {
+                parsed.push(char);
+                continue;
+            }
+        } else if single_quote_state {
+            if char == SINGLE_QUOTE {
+                single_quote_state = false;
+                result.push(String::from_utf8(parsed.clone()).expect("Non-UTF8 encounted."));
+                parsed.clear();
+                continue;
+            } else {
+                parsed.push(char);
+                continue;
+            }
+        } else {
+            match char {
+                b' ' if !parsed.is_empty() => {
+                    result.push(String::from_utf8(parsed.clone()).expect("Non-UTF8 encounted."));
+                    parsed.clear();
+                    continue;
+                }
+                b'\'' => single_quote_state = true,
+                b'\"' => double_quote_state = true,
+                _ => parsed.push(char),
+            }
+        }
+        /* match; char {
+            b'\'' => match tick_stack.last() {
+                Some(b'\"') => parsed.push(char),
+                Some(b'\'') if str[index + 1..].contains("\'") => tick_stack.push(char),
+                Some(b'\'') => {
                     tick_stack.pop();
                     continue;
-                } else if str[index + 1..].contains("\'") {
-                    tick_stack.push(char);
                 }
-                // Ignoring lone single quote for now.
-            }
-            b'\"' => {
-                if let Some(b'\"') = tick_stack.last() {
+                _ => tick_stack.push(char),
+            },
+            b'\"' => match tick_stack.last() {
+                Some(b'\"') if str[index + 1..].contains("\"") => tick_stack.push(char),
+                Some(b'\"') => {
                     tick_stack.pop();
                     continue;
                 }
-            }
+                _ => parsed.push(char),
+            },
             b' ' => {
-                if let Some(b'\'') = tick_stack.last() {
+                if tick_stack.last().is_some() {
                     parsed.push(char);
                 } else if !parsed.is_empty() {
                     result.push(String::from_utf8(parsed.clone()).expect("Non-UTF8 encounted."));
@@ -29,12 +77,13 @@ pub fn parse_args(str: &str) -> Vec<String> {
                 }
             }
             _ => parsed.push(char),
-        }
+        } */
     }
-    if !parsed.is_empty() {
+    /* if !parsed.is_empty() {
         result.push(String::from_utf8(parsed.clone()).expect("Non-UTF8 encountered."));
         parsed.clear();
-    }
+    } */
+    println!("Result:  {result:?}");
     result
 }
 
@@ -102,10 +151,17 @@ mod single_quotes {
 #[cfg(test)]
 mod double_quotes {
     use super::*;
+
     #[test]
     fn test_double_quotes() {
         let input = "\"hellooo\"";
         assert_eq!(vec!["hellooo"], parse_args(input));
+    }
+
+    #[test]
+    fn test_double_quotes_with_internal() {
+        let input = "\"hellooo'\"";
+        assert_eq!(vec!["hellooo'"], parse_args(input));
     }
 
     #[test]
@@ -139,8 +195,14 @@ mod double_quotes {
     }
 
     #[test]
-    fn test_lone_single_quote_without_escape() {
+    fn test_lone_double_quote_without_escape() {
         let input = "\"hello";
+        assert_eq!(vec!["hello"], parse_args(input));
+    }
+
+    #[test]
+    fn test_lone_double_quote_at_end() {
+        let input = "hello\"";
         assert_eq!(vec!["hello"], parse_args(input));
     }
 }
