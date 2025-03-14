@@ -44,7 +44,7 @@ pub fn parse_args(str: &str) -> Vec<String> {
                 b' ' if !parsed.is_empty() => {
                     done = true;
                 }
-                b' ' if !result.is_empty() => {}
+                b' ' if !result.is_empty() => continue,
                 b'\'' if str[index + 1..].contains("\'") => {
                     single_quote_state = true;
                 }
