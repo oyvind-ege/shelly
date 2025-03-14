@@ -1,4 +1,8 @@
 pub fn parse_args(str: &str) -> Vec<String> {
+    if str.bytes().all(|b| b == b' ') {
+        return vec![];
+    }
+
     let mut parsed: Vec<u8> = vec![];
     let mut double_quote_state = false;
     let mut single_quote_state = false;
@@ -10,7 +14,7 @@ pub fn parse_args(str: &str) -> Vec<String> {
     static SPECIAL_CHARS: [u8; 4] = [b'`', b'\\', b'\"', b'$'];
 
     let mut result: Vec<String> = vec![];
-    for (index, char) in str.trim().bytes().enumerate() {
+    for (index, char) in str.bytes().enumerate() {
         if done {
             result.push(String::from_utf8(parsed.clone()).expect("Non-UTF8 encounted."));
             parsed.clear();
@@ -41,9 +45,14 @@ pub fn parse_args(str: &str) -> Vec<String> {
             }
         } else {
             match char {
+                _ if escaped => {
+                    parsed.push(char);
+                    escaped = false;
+                }
                 b' ' if !parsed.is_empty() => {
                     done = true;
                 }
+                b'\\' => escaped = true,
                 b' ' if !result.is_empty() => continue,
                 b'\'' if str[index + 1..].contains("\'") => {
                     single_quote_state = true;
@@ -64,6 +73,23 @@ pub fn parse_args(str: &str) -> Vec<String> {
         parsed.clear();
     }
     result
+}
+
+#[cfg(test)]
+mod without_quotes {
+    use super::*;
+
+    #[test]
+    fn backslash() {
+        let input = r#"test\ \ \ "#;
+        assert_eq!(vec!["test   "], parse_args(input));
+    }
+
+    #[test]
+    fn backslash_and_other_stuff() {
+        let input = r#"test\'\'\'"#;
+        assert_eq!(vec!["test'''"], parse_args(input));
+    }
 }
 
 #[cfg(test)]
