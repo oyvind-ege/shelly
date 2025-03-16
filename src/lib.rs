@@ -22,7 +22,8 @@ pub struct Shell {}
 impl Shell {
     pub fn initiate(input: String) -> Result<Box<dyn Execute>, Box<dyn error::Error>> {
         let (command, args) = parse_command_and_arguments(&input);
-        let valid_commands = get_executables_from_paths(get_paths()).unwrap_or_default();
+        let valid_commands: HashMap<String, OsString> =
+            get_binaries_from_paths(get_path_variable()).unwrap_or_default();
 
         match command {
             cmd if !BUILTINS.contains(&cmd) && !valid_commands.contains_key(cmd) => {
@@ -43,9 +44,9 @@ impl Shell {
         }
     }
 }
-pub fn get_executables_from_paths(pbs: Vec<PathBuf>) -> io::Result<HashMap<String, OsString>> {
-    let mut executables: HashMap<String, OsString> = HashMap::new();
-    for dir in pbs {
+pub fn get_binaries_from_paths(paths: Vec<PathBuf>) -> io::Result<HashMap<String, OsString>> {
+    let mut binaries: HashMap<String, OsString> = HashMap::new();
+    for dir in paths {
         if dir.is_dir() {
             for entry in fs::read_dir(&dir)? {
                 let entry = entry?;
@@ -58,17 +59,17 @@ pub fn get_executables_from_paths(pbs: Vec<PathBuf>) -> io::Result<HashMap<Strin
                         .into_string()
                         .unwrap();
 
-                    executables
+                    binaries
                         .entry(binary_name)
                         .or_insert(path.clone().into_os_string());
                 }
             }
         }
     }
-    Ok(executables)
+    Ok(binaries)
 }
 
-pub fn get_paths() -> Vec<PathBuf> {
+pub fn get_path_variable() -> Vec<PathBuf> {
     match env::var_os("PATH") {
         Some(v) => env::split_paths(&v).collect(),
 
