@@ -1,5 +1,7 @@
 mod commands;
-use util::parse_args;
+mod parse;
+use crate::parse::*;
+use crate::parse_args::*;
 
 use crate::commands::*;
 use std::collections::HashMap;
@@ -25,7 +27,7 @@ impl Shell {
         let valid_commands: HashMap<String, OsString> =
             get_binaries_from_paths(get_path_variable()).unwrap_or_default();
 
-        match command {
+        match command.as_str() {
             cmd if !BUILTINS.contains(&cmd) && !valid_commands.contains_key(cmd) => {
                 Ok(Box::new(InvalidCommand::new(cmd.to_string())))
             }
@@ -77,15 +79,16 @@ pub fn get_path_variable() -> Vec<PathBuf> {
     }
 }
 
-pub fn parse_command_and_arguments(input: &str) -> (&str, Vec<String>) {
-    let split_input = input.splitn(2, ' ').collect::<Vec<&str>>();
-    let args = if split_input.len() > 1 {
-        parse_args(split_input[1])
+//TODO: Extend this function to handle commands that can have whitespace within quotes. Right now it splits on whitespace to separate commands from arguments.
+pub fn parse_command_and_arguments(input: &str) -> (String, Vec<String>) {
+    let parsed_input = parse_args(input);
+    let args = if parsed_input.len() > 1 {
+        parsed_input[1..].to_vec()
     } else {
         vec![]
     };
 
-    let command = split_input[0];
+    let command = parsed_input[0].clone();
 
     (command, args)
 }
@@ -100,29 +103,65 @@ pub fn get_command_info(valid_commands: &HashMap<String, OsString>, command: &st
 }
 
 #[cfg(test)]
-mod tests {
+mod parse_commands_test {
 
     use super::parse_command_and_arguments;
     #[test]
-    fn test_parse_command() {
+    fn simple_command_with_three_arguments() {
         let input = String::from("cmd x y z");
-        let cmd = "cmd";
+        let cmd = "cmd".to_string();
         let args = vec!["x".to_string(), "y".to_string(), "z".to_string()];
         assert_eq!(parse_command_and_arguments(&input), (cmd, args));
     }
 
     #[test]
-    fn test_empty_args() {
+    fn no_arguments() {
         let input = String::from("cmd");
-        let cmd = "cmd";
+        let cmd = "cmd".to_string();
         let args: Vec<String> = vec![];
         assert_eq!(parse_command_and_arguments(&input), (cmd, args));
     }
 
     #[test]
-    fn test_whitespace() {
+    fn whitespace() {
         let input = String::from("cmd   ");
-        let cmd = "cmd";
+        let cmd = "cmd".to_string();
+        let args: Vec<String> = vec![];
+
+        assert_eq!(parse_command_and_arguments(&input), (cmd, args));
+    }
+
+    #[test]
+    fn single_quotes_around_command() {
+        let input = String::from("'cmd'");
+        let cmd = "cmd".to_string();
+        let args: Vec<String> = vec![];
+
+        assert_eq!(parse_command_and_arguments(&input), (cmd, args));
+    }
+
+    #[test]
+    fn double_quote_around_command() {
+        let input = String::from(r#""cmd""#);
+        let cmd = "cmd".to_string();
+        let args: Vec<String> = vec![];
+
+        assert_eq!(parse_command_and_arguments(&input), (cmd, args));
+    }
+
+    #[test]
+    fn command_with_space() {
+        let input = String::from(r#"'cmd with space'"#);
+        let cmd = "cmd with space".to_string();
+        let args: Vec<String> = vec![];
+
+        assert_eq!(parse_command_and_arguments(&input), (cmd, args));
+    }
+
+    #[test]
+    fn command_with_double_quotes_and_space() {
+        let input = String::from(r#""cmd with space""#);
+        let cmd = "cmd with space".to_string();
         let args: Vec<String> = vec![];
 
         assert_eq!(parse_command_and_arguments(&input), (cmd, args));

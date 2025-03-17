@@ -5,7 +5,7 @@ enum ParseState {
 }
 
 pub fn parse_args(str: &str) -> Vec<String> {
-    if str.bytes().all(|b| b == b' ') {
+    if str.bytes().all(|b| b == WHITESPACE) {
         return vec![];
     }
 
@@ -24,9 +24,11 @@ pub fn parse_args(str: &str) -> Vec<String> {
     static SPECIAL_CHARS: [u8; 4] = [GRAVE, BACKSPACE, DOUBLE_QUOTE, DOLLAR_SIGN];
 
     let mut arguments: Vec<String> = vec![];
+
     for (index, char) in str.bytes().enumerate() {
+
         if is_word_done {
-            arguments.push(String::from_utf8(parsed_buffer.clone()).expect("Non-UTF8 encounted."));
+            arguments.push(String::from_utf8(parsed_buffer.clone()).expect("Non-UTF8 encountered."));
             parsed_buffer.clear();
             is_word_done = false;
         }
@@ -78,10 +80,12 @@ pub fn parse_args(str: &str) -> Vec<String> {
             },
         }
     }
+    
     if !parsed_buffer.is_empty() {
         arguments.push(String::from_utf8(parsed_buffer.clone()).expect("Non-UTF8 encountered."));
         parsed_buffer.clear();
     }
+    
     arguments
 }
 

@@ -1,4 +1,3 @@
-pub mod util;
 use crate::CommandInfo;
 use std::collections::HashMap;
 use std::env;
