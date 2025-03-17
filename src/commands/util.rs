@@ -1,76 +1,86 @@
+enum ParseState {
+    Normal,
+    SingleQuote,
+    DoubleQuote,
+}
+
 pub fn parse_args(str: &str) -> Vec<String> {
     if str.bytes().all(|b| b == b' ') {
         return vec![];
     }
 
-    let mut parsed: Vec<u8> = vec![];
-    let mut double_quote_state = false;
-    let mut single_quote_state = false;
+    let mut parsed_buffer: Vec<u8> = vec![];
+    let mut parse_state: ParseState = ParseState::Normal;
     let mut escaped: bool = false;
-    let mut done = false;
-    static SINGLE_QUOTE: u8 = b'\'';
-    static DOUBLE_QUOTE: u8 = b'\"';
+    let mut is_word_done = false;
 
-    static SPECIAL_CHARS: [u8; 4] = [b'`', b'\\', b'\"', b'$'];
+    const SINGLE_QUOTE: u8 = b'\'';
+    const DOUBLE_QUOTE: u8 = b'\"';
+    const WHITESPACE: u8 = b' ';
+    const BACKSPACE: u8 = b'\\';
+    const GRAVE: u8 = b'`';
+    const ENDLINE: u8 = b'$';
+
+    static SPECIAL_CHARS: [u8; 4] = [GRAVE, BACKSPACE, DOUBLE_QUOTE, ENDLINE];
 
     let mut result: Vec<String> = vec![];
     for (index, char) in str.bytes().enumerate() {
-        if done {
-            result.push(String::from_utf8(parsed.clone()).expect("Non-UTF8 encounted."));
-            parsed.clear();
-            done = false;
+        if is_word_done {
+            result.push(String::from_utf8(parsed_buffer.clone()).expect("Non-UTF8 encounted."));
+            parsed_buffer.clear();
+            is_word_done = false;
         }
 
-        if double_quote_state {
-            if escaped {
-                if SPECIAL_CHARS.contains(&char) {
-                    parsed.push(char);
+        match parse_state {
+            ParseState::DoubleQuote => {
+                if escaped {
+                    if !SPECIAL_CHARS.contains(&char) {
+                        parsed_buffer.push(b'\\');
+                    }
+                    parsed_buffer.push(char);
+                    escaped = false;
                 } else {
-                    parsed.push(b'\\');
-                    parsed.push(char);
+                    match char {
+                        DOUBLE_QUOTE => parse_state = ParseState::Normal,
+                        b'\\' => escaped = true,
+                        _ => parsed_buffer.push(char),
+                    }
                 }
-                escaped = false;
-            } else if char == DOUBLE_QUOTE {
-                double_quote_state = false;
-            } else if char == b'\\' {
-                escaped = true;
-            } else {
-                parsed.push(char);
             }
-        } else if single_quote_state {
-            if char == SINGLE_QUOTE {
-                single_quote_state = false;
-            } else {
-                parsed.push(char);
+            ParseState::SingleQuote => {
+                if char == SINGLE_QUOTE {
+                    parse_state = ParseState::Normal;
+                } else {
+                    parsed_buffer.push(char);
+                }
             }
-        } else {
-            match char {
+            ParseState::Normal => match char {
                 _ if escaped => {
-                    parsed.push(char);
+                    parsed_buffer.push(char);
                     escaped = false;
                 }
-                b' ' if !parsed.is_empty() => {
-                    done = true;
+                WHITESPACE if !parsed_buffer.is_empty() => {
+                    is_word_done = true;
                 }
-                b'\\' => escaped = true,
-                b' ' if !result.is_empty() => continue,
-                b'\'' if str[index + 1..].contains("\'") => {
-                    single_quote_state = true;
+                WHITESPACE if !result.is_empty() => continue,
+                BACKSPACE => escaped = true,
+                SINGLE_QUOTE if str[index + 1..].contains("\'") => {
+                    parse_state = ParseState::SingleQuote;
                 }
-                b'\'' => continue,
-                b'\"' if str[index + 1..].contains("\"") => {
-                    double_quote_state = true;
+                SINGLE_QUOTE => continue,
+                DOUBLE_QUOTE if str[index + 1..].contains("\"") => {
+                    parse_state = ParseState::DoubleQuote;
                 }
-                b'\"' => continue,
+                DOUBLE_QUOTE => continue,
                 _ => {
-                    parsed.push(char);
+                    parsed_buffer.push(char);
                 }
-            }
+            },
         }
     }
-    if !parsed.is_empty() {
-        result.push(String::from_utf8(parsed.clone()).expect("Non-UTF8 encountered."));
-        parsed.clear();
+    if !parsed_buffer.is_empty() {
+        result.push(String::from_utf8(parsed_buffer.clone()).expect("Non-UTF8 encountered."));
+        parsed_buffer.clear();
     }
     result
 }
