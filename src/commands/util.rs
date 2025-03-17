@@ -19,14 +19,14 @@ pub fn parse_args(str: &str) -> Vec<String> {
     const WHITESPACE: u8 = b' ';
     const BACKSPACE: u8 = b'\\';
     const GRAVE: u8 = b'`';
-    const ENDLINE: u8 = b'$';
+    const DOLLAR_SIGN: u8 = b'$';
 
-    static SPECIAL_CHARS: [u8; 4] = [GRAVE, BACKSPACE, DOUBLE_QUOTE, ENDLINE];
+    static SPECIAL_CHARS: [u8; 4] = [GRAVE, BACKSPACE, DOUBLE_QUOTE, DOLLAR_SIGN];
 
-    let mut result: Vec<String> = vec![];
+    let mut arguments: Vec<String> = vec![];
     for (index, char) in str.bytes().enumerate() {
         if is_word_done {
-            result.push(String::from_utf8(parsed_buffer.clone()).expect("Non-UTF8 encounted."));
+            arguments.push(String::from_utf8(parsed_buffer.clone()).expect("Non-UTF8 encounted."));
             parsed_buffer.clear();
             is_word_done = false;
         }
@@ -35,14 +35,14 @@ pub fn parse_args(str: &str) -> Vec<String> {
             ParseState::DoubleQuote => {
                 if escaped {
                     if !SPECIAL_CHARS.contains(&char) {
-                        parsed_buffer.push(b'\\');
+                        parsed_buffer.push(BACKSPACE);
                     }
                     parsed_buffer.push(char);
                     escaped = false;
                 } else {
                     match char {
                         DOUBLE_QUOTE => parse_state = ParseState::Normal,
-                        b'\\' => escaped = true,
+                        BACKSPACE => escaped = true,
                         _ => parsed_buffer.push(char),
                     }
                 }
@@ -62,7 +62,7 @@ pub fn parse_args(str: &str) -> Vec<String> {
                 WHITESPACE if !parsed_buffer.is_empty() => {
                     is_word_done = true;
                 }
-                WHITESPACE if !result.is_empty() => continue,
+                WHITESPACE if !arguments.is_empty() => continue,
                 BACKSPACE => escaped = true,
                 SINGLE_QUOTE if str[index + 1..].contains("\'") => {
                     parse_state = ParseState::SingleQuote;
@@ -79,10 +79,10 @@ pub fn parse_args(str: &str) -> Vec<String> {
         }
     }
     if !parsed_buffer.is_empty() {
-        result.push(String::from_utf8(parsed_buffer.clone()).expect("Non-UTF8 encountered."));
+        arguments.push(String::from_utf8(parsed_buffer.clone()).expect("Non-UTF8 encountered."));
         parsed_buffer.clear();
     }
-    result
+    arguments
 }
 
 #[cfg(test)]
