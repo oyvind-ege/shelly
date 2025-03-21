@@ -1,7 +1,6 @@
 mod commands;
 mod parse;
 use crate::parse::*;
-use crate::parse_args::*;
 
 use crate::commands::*;
 use std::collections::HashMap;
@@ -164,5 +163,16 @@ mod parse_commands_test {
         let args: Vec<String> = vec![];
 
         assert_eq!(parse_command_and_arguments(&input), (cmd, args));
+    }
+}
+
+#[cfg(test)]
+mod output_redirection {
+    use super::*;
+
+    #[test]
+    fn output_file_identified() {
+        let input = String::from(r#"echo hello > hello.txt"#);
+        let args: Vec<String> = vec![];
     }
 }
