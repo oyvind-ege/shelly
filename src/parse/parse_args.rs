@@ -4,7 +4,7 @@ enum ParseState {
     DoubleQuote,
 }
 
-pub fn parse_args(str: &str) -> Vec<String> {
+pub fn parse_input(str: &str) -> Vec<String> {
     if str.bytes().all(|b| b == WHITESPACE) {
         return vec![];
     }
@@ -23,12 +23,12 @@ pub fn parse_args(str: &str) -> Vec<String> {
 
     static SPECIAL_CHARS: [u8; 4] = [GRAVE, BACKSPACE, DOUBLE_QUOTE, DOLLAR_SIGN];
 
-    let mut arguments: Vec<String> = vec![];
+    let mut final_parsed_input: Vec<String> = vec![];
 
     for (index, char) in str.bytes().enumerate() {
-
         if is_word_done {
-            arguments.push(String::from_utf8(parsed_buffer.clone()).expect("Non-UTF8 encountered."));
+            final_parsed_input
+                .push(String::from_utf8(parsed_buffer.clone()).expect("Non-UTF8 encountered."));
             parsed_buffer.clear();
             is_word_done = false;
         }
@@ -37,12 +37,15 @@ pub fn parse_args(str: &str) -> Vec<String> {
             ParseState::DoubleQuote => {
                 if escaped {
                     if !SPECIAL_CHARS.contains(&char) {
+                        // Since the previous char was backspace, and the current char is not special, we add backspace.
                         parsed_buffer.push(BACKSPACE);
                     }
+                    // We add the current char, whether it is special or not.
                     parsed_buffer.push(char);
                     escaped = false;
                 } else {
                     match char {
+                        // We exit DoubleQuote state if new char is double quote; enter escaped state if current char is backspace.
                         DOUBLE_QUOTE => parse_state = ParseState::Normal,
                         BACKSPACE => escaped = true,
                         _ => parsed_buffer.push(char),
@@ -64,7 +67,7 @@ pub fn parse_args(str: &str) -> Vec<String> {
                 WHITESPACE if !parsed_buffer.is_empty() => {
                     is_word_done = true;
                 }
-                WHITESPACE if !arguments.is_empty() => continue,
+                WHITESPACE if !final_parsed_input.is_empty() => continue,
                 BACKSPACE => escaped = true,
                 SINGLE_QUOTE if str[index + 1..].contains("\'") => {
                     parse_state = ParseState::SingleQuote;
@@ -80,13 +83,14 @@ pub fn parse_args(str: &str) -> Vec<String> {
             },
         }
     }
-    
+
     if !parsed_buffer.is_empty() {
-        arguments.push(String::from_utf8(parsed_buffer.clone()).expect("Non-UTF8 encountered."));
+        final_parsed_input
+            .push(String::from_utf8(parsed_buffer.clone()).expect("Non-UTF8 encountered."));
         parsed_buffer.clear();
     }
-    
-    arguments
+
+    final_parsed_input
 }
 
 #[cfg(test)]
@@ -96,13 +100,13 @@ mod without_quotes {
     #[test]
     fn backslash() {
         let input = r#"test\ \ \ "#;
-        assert_eq!(vec!["test   "], parse_args(input));
+        assert_eq!(vec!["test   "], parse_input(input));
     }
 
     #[test]
     fn backslash_and_other_stuff() {
         let input = r#"test\'\'\'"#;
-        assert_eq!(vec!["test'''"], parse_args(input));
+        assert_eq!(vec!["test'''"], parse_input(input));
     }
 }
 
@@ -114,56 +118,56 @@ mod single_quotes {
     #[test]
     fn with_word_outside() {
         let input = "'hellooooo    '      test";
-        assert_eq!(vec!["hellooooo    ", "test"], parse_args(input));
+        assert_eq!(vec!["hellooooo    ", "test"], parse_input(input));
     }
 
     #[test]
     fn double_quote_successive() {
         let input = "'hello''test'";
-        assert_eq!(vec!["hellotest"], parse_args(input));
+        assert_eq!(vec!["hellotest"], parse_input(input));
     }
 
     #[test]
     fn basic() {
         let input = "'hello'";
-        assert_eq!(vec!["hello"], parse_args(input));
+        assert_eq!(vec!["hello"], parse_input(input));
     }
 
     #[test]
     fn basic_two_words() {
         let input = "'hello world'";
-        assert_eq!(vec!["hello world"], parse_args(input));
+        assert_eq!(vec!["hello world"], parse_input(input));
     }
 
     #[test]
     fn single_with_spaces() {
         let input = "'hello   '";
-        assert_eq!(vec!["hello   "], parse_args(input));
+        assert_eq!(vec!["hello   "], parse_input(input));
     }
 
     #[test]
     fn multiple_without_space() {
         let input = "'hello's";
-        assert_eq!(vec!["hellos"], parse_args(input));
+        assert_eq!(vec!["hellos"], parse_input(input));
     }
 
     #[test]
     fn multiple() {
         let input = "'hello  's'test  t'";
-        assert_eq!(vec!["hello  stest  t"], parse_args(input));
+        assert_eq!(vec!["hello  stest  t"], parse_input(input));
     }
 
     #[test]
     fn multiple_with_spaces() {
         let input = "'hellooo' s 'again   t'";
-        assert_eq!(vec!["hellooo", "s", "again   t"], parse_args(input));
+        assert_eq!(vec!["hellooo", "s", "again   t"], parse_input(input));
     }
 
     //  In a real shell, an odd number of single quotes could prompt the user for an input. Here, I just ignore it.
     #[test]
     fn odd_number_of_ticks() {
         let input = "'hellooo' s 'again   t";
-        assert_eq!(vec!["hellooo", "s", "again", "t"], parse_args(input));
+        assert_eq!(vec!["hellooo", "s", "again", "t"], parse_input(input));
     }
 }
 
@@ -174,30 +178,30 @@ mod double_quotes {
     #[test]
     fn simple_double_quotes() {
         let input = r#""\"hellooo\"""#;
-        assert_eq!(vec![r#""hellooo""#], parse_args(input));
+        assert_eq!(vec![r#""hellooo""#], parse_input(input));
     }
 
     #[test]
     fn with_spacing() {
         let input = r#""\"hellooo test\"""#;
-        assert_eq!(vec![r#""hellooo test""#], parse_args(input));
+        assert_eq!(vec![r#""hellooo test""#], parse_input(input));
     }
 
     #[test]
     fn with_single_quote() {
         let input = r#""\"hellooo' test\"""#;
-        assert_eq!(vec![r#""hellooo' test""#], parse_args(input));
+        assert_eq!(vec![r#""hellooo' test""#], parse_input(input));
     }
 
     #[test]
     fn with_special_character_backslash() {
         let input = r#""\"hellooo \\ test\"""#;
-        assert_eq!(vec![r#""hellooo \ test""#], parse_args(input));
+        assert_eq!(vec![r#""hellooo \ test""#], parse_input(input));
     }
 
     #[test]
     fn with_backslash_non_escaped() {
         let input = r#""\"hellooo \' test\"""#;
-        assert_eq!(vec![r#""hellooo \' test""#], parse_args(input));
+        assert_eq!(vec![r#""hellooo \' test""#], parse_input(input));
     }
 }

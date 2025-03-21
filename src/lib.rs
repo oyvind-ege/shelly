@@ -79,9 +79,8 @@ pub fn get_path_variable() -> Vec<PathBuf> {
     }
 }
 
-//TODO: Extend this function to handle commands that can have whitespace within quotes. Right now it splits on whitespace to separate commands from arguments.
 pub fn parse_command_and_arguments(input: &str) -> (String, Vec<String>) {
-    let parsed_input = parse_args(input);
+    let parsed_input = parse_input(input);
     let args = if parsed_input.len() > 1 {
         parsed_input[1..].to_vec()
     } else {
