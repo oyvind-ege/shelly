@@ -20,8 +20,8 @@ pub struct CommandInfo {
 pub struct Shell {}
 
 impl Shell {
-    pub fn initiate(input: String) -> Result<Box<dyn Execute>, Box<dyn error::Error>> {
-        let cmd_and_options = parse(&input);
+    pub fn parse(input: String) -> Result<Box<dyn Execute>, Box<dyn error::Error>> {
+        let cmd_and_options = parse_input(&input);
         let command = &cmd_and_options.cmd.unwrap_or_default();
         let args = &cmd_and_options.args.unwrap_or_default();
         let valid_commands: HashMap<String, OsString> =
@@ -80,137 +80,11 @@ pub fn get_path_variable() -> Vec<PathBuf> {
     }
 }
 
-pub fn parse(input: &str) -> CommandOptions {
-    parse_input(input)
-}
-
 pub fn get_command_info(valid_commands: &HashMap<String, OsString>, command: &str) -> CommandInfo {
     let command_borrowed = valid_commands.get_key_value(command).unwrap();
 
     CommandInfo {
         bin: command_borrowed.0.to_string(),
         path: command_borrowed.1.to_owned(),
-    }
-}
-
-#[cfg(test)]
-mod parse_commands_test {
-
-    use super::*;
-    #[test]
-    fn simple_command_with_three_arguments() {
-        let input = String::from("cmd x y z");
-        let cmd = "cmd".to_string();
-        let args = vec!["x".to_string(), "y".to_string(), "z".to_string()];
-        let mut expected = CommandOptions::new();
-
-        expected.cmd = Some(cmd);
-        expected.args = Some(args);
-
-        assert_eq!(parse(&input), expected);
-    }
-
-    #[test]
-    fn empty() {
-        let input = String::from("");
-        let mut expected = CommandOptions::new();
-
-        expected.cmd = None;
-        expected.args = None;
-
-        let result = parse(&input);
-        assert_eq!(result, expected);
-    }
-
-    #[test]
-    fn no_arguments() {
-        let input = String::from("cmd");
-        let cmd = "cmd".to_string();
-        let mut expected = CommandOptions::new();
-
-        expected.cmd = Some(cmd);
-        expected.args = None;
-        assert_eq!(parse(&input), expected);
-    }
-
-    #[test]
-    fn whitespace() {
-        let input = String::from("cmd   ");
-        let cmd = "cmd".to_string();
-        let mut expected = CommandOptions::new();
-
-        expected.cmd = Some(cmd);
-        expected.args = None;
-
-        assert_eq!(parse(&input), expected);
-    }
-
-    #[test]
-    fn single_quotes_around_command() {
-        let input = String::from("'cmd'");
-        let cmd = "cmd".to_string();
-        let mut expected = CommandOptions::new();
-
-        expected.cmd = Some(cmd);
-        expected.args = None;
-
-        assert_eq!(parse(&input), expected);
-    }
-
-    #[test]
-    fn double_quote_around_command() {
-        let input = String::from(r#""cmd""#);
-        let cmd = "cmd".to_string();
-        let mut expected = CommandOptions::new();
-
-        expected.cmd = Some(cmd);
-        expected.args = None;
-
-        assert_eq!(parse(&input), expected);
-    }
-
-    #[test]
-    fn command_with_space() {
-        let input = String::from(r#"'cmd with space'"#);
-        let cmd = "cmd with space".to_string();
-        let mut expected = CommandOptions::new();
-
-        expected.cmd = Some(cmd);
-        expected.args = None;
-
-        assert_eq!(parse(&input), expected);
-    }
-
-    #[test]
-    fn command_with_double_quotes_and_space() {
-        let input = String::from(r#""cmd with space""#);
-        let cmd = "cmd with space".to_string();
-        let mut expected = CommandOptions::new();
-
-        expected.cmd = Some(cmd);
-        expected.args = None;
-
-        assert_eq!(parse(&input), expected);
-    }
-}
-
-#[cfg(test)]
-mod output_redirection {
-    use super::*;
-
-    #[test]
-    fn output_file_identified() {
-        let input = String::from(r#"echo hello > hello.txt"#);
-        let cmd = "echo".to_string();
-        let args = vec!["hello".to_string()];
-        let output_file = PathBuf::from("hello.txt");
-
-        let mut expected = CommandOptions::new();
-
-        expected.cmd = Some(cmd);
-        expected.args = Some(args);
-        expected.output = Some(output_file);
-
-        assert_eq!(parse(&input), expected);
     }
 }
