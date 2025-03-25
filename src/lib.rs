@@ -201,6 +201,16 @@ mod output_redirection {
     #[test]
     fn output_file_identified() {
         let input = String::from(r#"echo hello > hello.txt"#);
-        let args: Vec<String> = vec![];
+        let cmd = "echo".to_string();
+        let args = vec!["hello".to_string()];
+        let output_file = PathBuf::from("hello.txt");
+
+        let mut expected = CommandOptions::new();
+
+        expected.cmd = Some(cmd);
+        expected.args = Some(args);
+        expected.output = Some(output_file);
+
+        assert_eq!(parse(&input), expected);
     }
 }

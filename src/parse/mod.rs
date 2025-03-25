@@ -6,8 +6,8 @@ use std::path::PathBuf;
 pub struct CommandOptions {
     pub cmd: Option<String>,
     pub args: Option<Vec<String>>,
-    output: Option<PathBuf>,
-    errorout: Option<PathBuf>,
+    pub output: Option<PathBuf>,
+    pub errorout: Option<PathBuf>,
 }
 
 impl CommandOptions {
