@@ -1,8 +1,7 @@
 mod commands;
 mod parse;
-use crate::parse::*;
-
 use crate::commands::*;
+use crate::parse::*;
 use std::collections::HashMap;
 use std::env;
 use std::error;
@@ -22,7 +21,9 @@ pub struct Shell {}
 
 impl Shell {
     pub fn initiate(input: String) -> Result<Box<dyn Execute>, Box<dyn error::Error>> {
-        let (command, args) = parse_command_and_arguments(&input);
+        let cmd_and_options = parse(&input);
+        let command = &cmd_and_options.cmd.unwrap_or_default();
+        let args = &cmd_and_options.args.unwrap_or_default();
         let valid_commands: HashMap<String, OsString> =
             get_binaries_from_paths(get_path_variable()).unwrap_or_default();
 
@@ -79,14 +80,8 @@ pub fn get_path_variable() -> Vec<PathBuf> {
     }
 }
 
-pub fn parse_command_and_arguments(input: &str) -> (String, Vec<String>) {
-    let parsed = parse_input(input);
-
-    let cmd = parsed.cmd.unwrap_or_default();
-
-    let args = parsed.args.unwrap_or_default();
-
-    (cmd, args)
+pub fn parse(input: &str) -> CommandOptions {
+    parse_input(input)
 }
 
 pub fn get_command_info(valid_commands: &HashMap<String, OsString>, command: &str) -> CommandInfo {
@@ -101,20 +96,29 @@ pub fn get_command_info(valid_commands: &HashMap<String, OsString>, command: &st
 #[cfg(test)]
 mod parse_commands_test {
 
-    use super::parse_command_and_arguments;
+    use super::*;
     #[test]
     fn simple_command_with_three_arguments() {
         let input = String::from("cmd x y z");
         let cmd = "cmd".to_string();
         let args = vec!["x".to_string(), "y".to_string(), "z".to_string()];
-        assert_eq!(parse_command_and_arguments(&input), (cmd, args));
+        let mut expected = CommandOptions::new();
+
+        expected.cmd = Some(cmd);
+        expected.args = Some(args);
+
+        assert_eq!(parse(&input), expected);
     }
 
     #[test]
     fn empty() {
         let input = String::from("");
-        let expected = ("".to_string(), Vec::<String>::new());
-        let result = parse_command_and_arguments(&input);
+        let mut expected = CommandOptions::new();
+
+        expected.cmd = None;
+        expected.args = None;
+
+        let result = parse(&input);
         assert_eq!(result, expected);
     }
 
@@ -122,53 +126,71 @@ mod parse_commands_test {
     fn no_arguments() {
         let input = String::from("cmd");
         let cmd = "cmd".to_string();
-        let args: Vec<String> = vec![];
-        assert_eq!(parse_command_and_arguments(&input), (cmd, args));
+        let mut expected = CommandOptions::new();
+
+        expected.cmd = Some(cmd);
+        expected.args = None;
+        assert_eq!(parse(&input), expected);
     }
 
     #[test]
     fn whitespace() {
         let input = String::from("cmd   ");
         let cmd = "cmd".to_string();
-        let args: Vec<String> = vec![];
+        let mut expected = CommandOptions::new();
 
-        assert_eq!(parse_command_and_arguments(&input), (cmd, args));
+        expected.cmd = Some(cmd);
+        expected.args = None;
+
+        assert_eq!(parse(&input), expected);
     }
 
     #[test]
     fn single_quotes_around_command() {
         let input = String::from("'cmd'");
         let cmd = "cmd".to_string();
-        let args: Vec<String> = vec![];
+        let mut expected = CommandOptions::new();
 
-        assert_eq!(parse_command_and_arguments(&input), (cmd, args));
+        expected.cmd = Some(cmd);
+        expected.args = None;
+
+        assert_eq!(parse(&input), expected);
     }
 
     #[test]
     fn double_quote_around_command() {
         let input = String::from(r#""cmd""#);
         let cmd = "cmd".to_string();
-        let args: Vec<String> = vec![];
+        let mut expected = CommandOptions::new();
 
-        assert_eq!(parse_command_and_arguments(&input), (cmd, args));
+        expected.cmd = Some(cmd);
+        expected.args = None;
+
+        assert_eq!(parse(&input), expected);
     }
 
     #[test]
     fn command_with_space() {
         let input = String::from(r#"'cmd with space'"#);
         let cmd = "cmd with space".to_string();
-        let args: Vec<String> = vec![];
+        let mut expected = CommandOptions::new();
 
-        assert_eq!(parse_command_and_arguments(&input), (cmd, args));
+        expected.cmd = Some(cmd);
+        expected.args = None;
+
+        assert_eq!(parse(&input), expected);
     }
 
     #[test]
     fn command_with_double_quotes_and_space() {
         let input = String::from(r#""cmd with space""#);
         let cmd = "cmd with space".to_string();
-        let args: Vec<String> = vec![];
+        let mut expected = CommandOptions::new();
 
-        assert_eq!(parse_command_and_arguments(&input), (cmd, args));
+        expected.cmd = Some(cmd);
+        expected.args = None;
+
+        assert_eq!(parse(&input), expected);
     }
 }
 

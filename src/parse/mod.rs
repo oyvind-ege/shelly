@@ -17,6 +17,10 @@ impl CommandOptions {
             None => Ok(Box::new(io::stdout())),
         }
     }
+
+    pub fn new() -> Self {
+        CommandOptions::default()
+    }
 }
 
 enum ParseState {
