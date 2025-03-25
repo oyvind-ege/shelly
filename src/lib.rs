@@ -45,6 +45,7 @@ impl Shell {
         }
     }
 }
+
 pub fn get_binaries_from_paths(paths: Vec<PathBuf>) -> io::Result<HashMap<String, OsString>> {
     let mut binaries: HashMap<String, OsString> = HashMap::new();
     for dir in paths {
@@ -79,16 +80,13 @@ pub fn get_path_variable() -> Vec<PathBuf> {
 }
 
 pub fn parse_command_and_arguments(input: &str) -> (String, Vec<String>) {
-    let parsed_input = parse_input(input);
-    let args = if parsed_input.len() > 1 {
-        parsed_input[1..].to_vec()
-    } else {
-        vec![]
-    };
+    let parsed = parse_input(input);
 
-    let command = parsed_input[0].clone();
+    let cmd = parsed.cmd.unwrap_or_default();
 
-    (command, args)
+    let args = parsed.args.unwrap_or_default();
+
+    (cmd, args)
 }
 
 pub fn get_command_info(valid_commands: &HashMap<String, OsString>, command: &str) -> CommandInfo {
@@ -110,6 +108,14 @@ mod parse_commands_test {
         let cmd = "cmd".to_string();
         let args = vec!["x".to_string(), "y".to_string(), "z".to_string()];
         assert_eq!(parse_command_and_arguments(&input), (cmd, args));
+    }
+
+    #[test]
+    fn empty() {
+        let input = String::from("");
+        let expected = ("".to_string(), Vec::<String>::new());
+        let result = parse_command_and_arguments(&input);
+        assert_eq!(result, expected);
     }
 
     #[test]
