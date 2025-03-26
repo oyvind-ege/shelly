@@ -17,29 +17,36 @@ pub struct CommandInfo {
 }
 
 #[derive(Debug)]
-pub struct Shell {}
+pub struct Shell {
+    valid_commands: HashMap<String, OsString>,
+}
 
 impl Shell {
-    pub fn parse(input: String) -> Result<Box<dyn Execute>, Box<dyn error::Error>> {
-        let cmd_and_options = parse_input(&input);
-        let command = &cmd_and_options.cmd.unwrap_or_default();
-        let args = &cmd_and_options.args.unwrap_or_default();
-        let valid_commands: HashMap<String, OsString> =
-            get_binaries_from_paths(get_path_variable()).unwrap_or_default();
+    pub fn init() -> Self {
+        Shell {
+            valid_commands: get_binaries_from_paths(get_path_variable()).unwrap_or_default(),
+        }
+    }
 
-        match command.as_str() {
-            cmd if !BUILTINS.contains(&cmd) && !valid_commands.contains_key(cmd) => {
-                Ok(Box::new(InvalidCommand::new(cmd.to_string())))
+    pub fn parse(
+        &self,
+        input: String,
+    ) -> Result<Box<dyn Execute + '_>, Box<dyn error::Error + '_>> {
+        let options = parse_input(&input);
+
+        match options.cmd.clone().unwrap_or_default().as_str() {
+            cmd if !BUILTINS.contains(&cmd) && !self.valid_commands.contains_key(cmd) => {
+                Ok(Box::new(InvalidCommand::new(options)))
             }
-            "exit" => Ok(Box::new(ExitCommand::new(args.clone()))),
-            "echo" => Ok(Box::new(EchoCommand::new(args.clone()))),
-            "type" => Ok(Box::new(TypeCommand::new(args.clone(), valid_commands))),
+            "exit" => Ok(Box::new(ExitCommand::new(options))),
+            "echo" => Ok(Box::new(EchoCommand::new(options))),
+            "type" => Ok(Box::new(TypeCommand::new(options, &self.valid_commands))),
             "pwd" => Ok(Box::new(PwdCommand::new())),
-            "cd" => Ok(Box::new(CdCommand::new(args.clone()))),
+            "cd" => Ok(Box::new(CdCommand::new(options))),
 
-            cmd if valid_commands.contains_key(cmd) => Ok(Box::new(RunCommand::new(
-                args.clone(),
-                get_command_info(&valid_commands, cmd),
+            cmd if self.valid_commands.contains_key(cmd) => Ok(Box::new(RunCommand::new(
+                options,
+                get_command_info(&self.valid_commands, cmd),
             ))),
 
             _ => Err("Try again.".into()),

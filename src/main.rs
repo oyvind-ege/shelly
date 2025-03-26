@@ -3,6 +3,7 @@ use std::io::{self, Write};
 extern crate exitcode;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let shell = Shell::init();
     loop {
         print!("$ ");
         io::stdout().flush().unwrap();
@@ -11,6 +12,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let stdin = io::stdin();
         let mut input = String::new();
         stdin.read_line(&mut input).unwrap();
-        Shell::parse(input.trim().to_string())?.execute();
+        shell.parse(input.trim().to_string())?.execute();
     }
 }
