@@ -1,4 +1,6 @@
 use crate::CommandInfo;
+use crate::CommandOptions;
+
 use std::collections::HashMap;
 use std::env;
 use std::ffi::OsString;
@@ -15,28 +17,28 @@ pub trait Execute {
 
 #[derive(Debug)]
 pub struct ExitCommand {
-    args: Vec<String>,
+    options: CommandOptions,
 }
 
 #[derive(Debug)]
 pub struct EchoCommand {
-    args: Vec<String>,
+    options: CommandOptions,
 }
 
 #[derive(Debug)]
-pub struct TypeCommand {
-    args: Vec<String>,
-    valid_commands: HashMap<String, OsString>,
+pub struct TypeCommand<'a> {
+    options: CommandOptions,
+    valid_commands: &'a HashMap<String, OsString>,
 }
 
 #[derive(Debug)]
 pub struct InvalidCommand {
-    args: String,
+    options: CommandOptions,
 }
 
 #[derive(Debug)]
 pub struct RunCommand {
-    args: Vec<String>,
+    options: CommandOptions,
     command: CommandInfo,
 }
 
@@ -45,7 +47,7 @@ pub struct PwdCommand {}
 
 #[derive(Debug)]
 pub struct CdCommand {
-    args: Vec<String>,
+    options: CommandOptions,
 }
 
 /*******************************
@@ -53,15 +55,15 @@ pub struct CdCommand {
 *******************************/
 
 impl ExitCommand {
-    pub fn new(args: Vec<String>) -> Self {
-        ExitCommand { args }
+    pub fn new(options: CommandOptions) -> Self {
+        ExitCommand { options }
     }
 }
 
 impl Execute for ExitCommand {
     fn execute(&self) {
-        match self.args.first() {
-            Some(val) if val == "0" => process::exit(exitcode::OK),
+        match &self.options.args {
+            Some(val) if val.first().unwrap() == "0" => process::exit(exitcode::OK),
             _ => process::exit(exitcode::USAGE),
         }
     }
@@ -71,14 +73,14 @@ impl Execute for ExitCommand {
  ------------ Echo ------------
 *******************************/
 impl EchoCommand {
-    pub fn new(args: Vec<String>) -> Self {
-        EchoCommand { args }
+    pub fn new(options: CommandOptions) -> Self {
+        EchoCommand { options }
     }
 }
 
 impl Execute for EchoCommand {
     fn execute(&self) {
-        println!("{}", self.args.join(" "));
+        println!("{}", self.options.args.clone().unwrap().join(" "));
     }
 }
 
@@ -86,14 +88,14 @@ impl Execute for EchoCommand {
  ------------ Invalid ------------
 *******************************/
 impl InvalidCommand {
-    pub fn new(args: String) -> Self {
-        InvalidCommand { args }
+    pub fn new(options: CommandOptions) -> Self {
+        InvalidCommand { options }
     }
 }
 
 impl Execute for InvalidCommand {
     fn execute(&self) {
-        println!("{}: command not found", self.args);
+        println!("{}: command not found", self.options.cmd.clone().unwrap());
     }
 }
 
@@ -101,15 +103,15 @@ impl Execute for InvalidCommand {
  ------------ Run ------------
 *******************************/
 impl RunCommand {
-    pub fn new(args: Vec<String>, command: CommandInfo) -> Self {
-        RunCommand { args, command }
+    pub fn new(options: CommandOptions, command: CommandInfo) -> Self {
+        RunCommand { command, options }
     }
 }
 
 impl Execute for RunCommand {
     fn execute(&self) {
         let output = Command::new(self.command.bin.clone())
-            .args(self.args.clone())
+            .args(self.options.args.clone().unwrap())
             .output()
             .expect("Failed to run command.");
 
@@ -120,29 +122,29 @@ impl Execute for RunCommand {
 /*******************************
  ------------ Type ------------
 *******************************/
-impl TypeCommand {
-    pub fn new(args: Vec<String>, valid_commands: HashMap<String, OsString>) -> Self {
+impl<'a> TypeCommand<'a> {
+    pub fn new(options: CommandOptions, valid_commands: &'a HashMap<String, OsString>) -> Self {
         TypeCommand {
-            args,
+            options,
             valid_commands,
         }
     }
 }
 
-impl Execute for TypeCommand {
+impl Execute for TypeCommand<'_> {
     fn execute(&self) {
-        match self.args.first() {
+        match &self.options.args.clone().unwrap().first() {
             Some(bin)
-                if !BUILTINS.contains(&bin.as_str()) && !self.valid_commands.contains_key(bin) =>
+                if !BUILTINS.contains(&bin.as_str()) && !self.valid_commands.contains_key(*bin) =>
             {
                 println!("{}: not found", bin)
             }
             Some(bin) if BUILTINS.contains(&bin.as_str()) => println!("{} is a shell builtin", bin),
-            Some(bin) if self.valid_commands.contains_key(bin) => {
+            Some(bin) if self.valid_commands.contains_key(*bin) => {
                 println!(
                     "{} is {}",
                     bin,
-                    self.valid_commands.get(bin).unwrap().to_str().unwrap()
+                    self.valid_commands.get(*bin).unwrap().to_str().unwrap()
                 )
             }
             None => println!("Wrong usage"), //this right here is the entry point for a manpage message
@@ -170,16 +172,16 @@ impl Execute for PwdCommand {
  ------------ Cd ------------
 *******************************/
 impl CdCommand {
-    pub fn new(args: Vec<String>) -> Self {
-        CdCommand { args }
+    pub fn new(options: CommandOptions) -> Self {
+        CdCommand { options }
     }
 }
 
 impl Execute for CdCommand {
     fn execute(&self) {
-        if let Some(path) = self.args.first() {
+        if let Some(path) = &self.options.args.clone().unwrap().first() {
             match path {
-                path if path == &"~".to_string() => {
+                path if *path == &"~".to_string() => {
                     env::set_current_dir(env::var_os("HOME").unwrap_or_else(|| {
                         println!("No HOME directory found.");
                         Path::new("").into()
