@@ -28,10 +28,10 @@ impl Shell {
         }
     }
 
-    pub fn parse(
-        &self,
+    pub fn parse<'a>(
+        &'a self,
         input: String,
-    ) -> Result<Box<dyn Execute + '_>, Box<dyn error::Error + '_>> {
+    ) -> Result<Box<dyn Execute + 'a>, Box<dyn error::Error + 'a>> {
         let options = parse_input(&input);
 
         match options.cmd.clone().unwrap_or_default().as_str() {
@@ -86,7 +86,9 @@ pub fn get_path_variable() -> Vec<PathBuf> {
         None => todo!(),
     }
 }
-
+/**
+This function assumes that command is in valid_commands, and constructs a struct with the relevant information.
+**/
 pub fn get_command_info(valid_commands: &HashMap<String, OsString>, command: &str) -> CommandInfo {
     let command_borrowed = valid_commands.get_key_value(command).unwrap();
 

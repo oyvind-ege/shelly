@@ -131,7 +131,7 @@ impl<'a> TypeCommand<'a> {
     }
 }
 
-impl Execute for TypeCommand<'_> {
+impl<'a> Execute for TypeCommand<'a> {
     fn execute(&self) {
         match &self.options.args.clone().unwrap().first() {
             Some(bin)
