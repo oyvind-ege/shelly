@@ -44,12 +44,12 @@ pub fn parse_input(input: &str) -> CommandOptions {
     const SINGLE_QUOTE: u8 = b'\'';
     const DOUBLE_QUOTE: u8 = b'\"';
     const WHITESPACE: u8 = b' ';
-    const BACKSPACE: u8 = b'\\';
+    const BACKSLASH: u8 = b'\\';
     const GRAVE: u8 = b'`';
     const DOLLAR_SIGN: u8 = b'$';
     const REDIRECT: u8 = b'>';
 
-    static SPECIAL_CHARS: [u8; 4] = [GRAVE, BACKSPACE, DOUBLE_QUOTE, DOLLAR_SIGN];
+    static SPECIAL_CHARS: [u8; 4] = [GRAVE, BACKSLASH, DOUBLE_QUOTE, DOLLAR_SIGN];
 
     let mut final_parsed_input: Vec<String> = vec![];
     let mut parsed_redirect: Vec<String> = vec![];
@@ -85,17 +85,17 @@ pub fn parse_input(input: &str) -> CommandOptions {
             ParseState::DoubleQuote => {
                 if escaped {
                     if !SPECIAL_CHARS.contains(&char) {
-                        // Since the previous char was backspace, and the current char is not special, we add backspace.
-                        parsed_buffer.push(BACKSPACE);
+                        // Since the previous char was backslash - we know this since we are in Escaped mode -, and the current char is not special, we add an actual backslash.
+                        parsed_buffer.push(BACKSLASH);
                     }
                     // We add the current char, whether it is special or not.
                     parsed_buffer.push(char);
                     escaped = false;
                 } else {
                     match char {
-                        // We exit DoubleQuote state if new char is double quote; enter escaped state if current char is backspace.
+                        // We exit DoubleQuote state if new char is double quote; enter escaped state if current char is backslash.
                         DOUBLE_QUOTE => parse_state = ParseState::Normal,
-                        BACKSPACE => escaped = true,
+                        BACKSLASH => escaped = true,
                         _ => parsed_buffer.push(char),
                     }
                 }
@@ -122,7 +122,7 @@ pub fn parse_input(input: &str) -> CommandOptions {
                     is_word_done = true;
                 }
                 WHITESPACE if !final_parsed_input.is_empty() => continue,
-                BACKSPACE => escaped = true,
+                BACKSLASH => escaped = true,
                 SINGLE_QUOTE if input[index + 1..].contains("\'") => {
                     parse_state = ParseState::SingleQuote;
                 }
