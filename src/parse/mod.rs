@@ -13,7 +13,7 @@ pub struct CommandOptions {
 impl CommandOptions {
     pub fn get_output(&self) -> Result<Box<dyn Write>, Error> {
         match self.output {
-            Some(ref path) => File::open(path).map(|f| Box::new(f) as Box<dyn Write>),
+            Some(ref path) => File::create(path).map(|f| Box::new(f) as Box<dyn Write>),
             None => Ok(Box::new(io::stdout())),
         }
     }

@@ -28,25 +28,23 @@ impl Shell {
         }
     }
 
-    pub fn parse<'a>(
-        &'a self,
-        input: String,
-    ) -> Result<Box<dyn Execute + 'a>, Box<dyn error::Error + 'a>> {
+    pub fn parse(&self, input: String) -> Result<Box<dyn Execute>, Box<dyn error::Error>> {
         let options = parse_input(&input);
-
+        // We are now fetching these every input
+        let valid_commands = get_binaries_from_paths(get_path_variable()).unwrap_or_default();
         match options.cmd.clone().unwrap_or_default().as_str() {
             cmd if !BUILTINS.contains(&cmd) && !self.valid_commands.contains_key(cmd) => {
                 Ok(Box::new(InvalidCommand::new(options)))
             }
             "exit" => Ok(Box::new(ExitCommand::new(options))),
             "echo" => Ok(Box::new(EchoCommand::new(options))),
-            "type" => Ok(Box::new(TypeCommand::new(options, &self.valid_commands))),
-            "pwd" => Ok(Box::new(PwdCommand::new())),
+            "type" => Ok(Box::new(TypeCommand::new(options, valid_commands))),
+            "pwd" => Ok(Box::new(PwdCommand::new(options))),
             "cd" => Ok(Box::new(CdCommand::new(options))),
 
             cmd if self.valid_commands.contains_key(cmd) => Ok(Box::new(RunCommand::new(
                 options,
-                get_command_info(&self.valid_commands, cmd),
+                get_command_info(&valid_commands, cmd),
             ))),
 
             _ => Err("Try again.".into()),

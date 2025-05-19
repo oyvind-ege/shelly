@@ -1,10 +1,11 @@
 use crate::CommandInfo;
 use crate::CommandOptions;
+use std::io::Error;
 
 use std::collections::HashMap;
 use std::env;
 use std::ffi::OsString;
-use std::io::{self, Write};
+use std::io::Write;
 use std::path::Path;
 use std::process::Command;
 use std::process::{self};
@@ -12,7 +13,7 @@ use std::process::{self};
 pub static BUILTINS: [&str; 5] = ["exit", "echo", "type", "pwd", "cd"];
 
 pub trait Execute {
-    fn execute(&self);
+    fn execute(&self) -> Result<(), Error>;
 }
 
 #[derive(Debug)]
@@ -26,9 +27,9 @@ pub struct EchoCommand {
 }
 
 #[derive(Debug)]
-pub struct TypeCommand<'a> {
+pub struct TypeCommand {
     options: CommandOptions,
-    valid_commands: &'a HashMap<String, OsString>,
+    valid_commands: HashMap<String, OsString>,
 }
 
 #[derive(Debug)]
@@ -43,7 +44,9 @@ pub struct RunCommand {
 }
 
 #[derive(Debug)]
-pub struct PwdCommand {}
+pub struct PwdCommand {
+    options: CommandOptions,
+}
 
 #[derive(Debug)]
 pub struct CdCommand {
@@ -61,7 +64,7 @@ impl ExitCommand {
 }
 
 impl Execute for ExitCommand {
-    fn execute(&self) {
+    fn execute(&self) -> Result<(), Error> {
         match &self.options.args {
             Some(val) if val.first().unwrap() == "0" => process::exit(exitcode::OK),
             _ => process::exit(exitcode::USAGE),
@@ -79,8 +82,14 @@ impl EchoCommand {
 }
 
 impl Execute for EchoCommand {
-    fn execute(&self) {
-        println!("{}", self.options.args.clone().unwrap().join(" "));
+    fn execute(&self) -> Result<(), Error> {
+        writeln!(
+            self.options
+                .get_output()
+                .expect("Failed to get write output."),
+            "{}",
+            self.options.args.clone().unwrap().join(" ")
+        )
     }
 }
 
@@ -94,8 +103,14 @@ impl InvalidCommand {
 }
 
 impl Execute for InvalidCommand {
-    fn execute(&self) {
-        println!("{}: command not found", self.options.cmd.clone().unwrap());
+    fn execute(&self) -> Result<(), Error> {
+        writeln!(
+            self.options
+                .get_output()
+                .expect("Failed to get write output."),
+            "{}: command not found",
+            self.options.cmd.clone().unwrap()
+        )
     }
 }
 
@@ -109,21 +124,22 @@ impl RunCommand {
 }
 
 impl Execute for RunCommand {
-    fn execute(&self) {
+    fn execute(&self) -> Result<(), Error> {
+        let mut out = self.options.get_output()?;
         let output = Command::new(self.command.bin.clone())
-            .args(self.options.args.clone().unwrap())
+            .args(self.options.args.clone().unwrap_or_default())
             .output()
             .expect("Failed to run command.");
 
-        io::stdout().write_all(&output.stdout).unwrap();
+        out.write_all(&output.stdout)
     }
 }
 
 /*******************************
  ------------ Type ------------
 *******************************/
-impl<'a> TypeCommand<'a> {
-    pub fn new(options: CommandOptions, valid_commands: &'a HashMap<String, OsString>) -> Self {
+impl TypeCommand {
+    pub fn new(options: CommandOptions, valid_commands: HashMap<String, OsString>) -> Self {
         TypeCommand {
             options,
             valid_commands,
@@ -131,25 +147,31 @@ impl<'a> TypeCommand<'a> {
     }
 }
 
-impl<'a> Execute for TypeCommand<'a> {
-    fn execute(&self) {
+impl Execute for TypeCommand {
+    fn execute(&self) -> Result<(), Error> {
+        let mut out = self
+            .options
+            .get_output()
+            .expect("Failed to get write output.");
         match &self.options.args.clone().unwrap().first() {
             Some(bin)
                 if !BUILTINS.contains(&bin.as_str()) && !self.valid_commands.contains_key(*bin) =>
             {
-                println!("{}: not found", bin)
+                writeln!(out, "{}: not found", bin)
             }
-            Some(bin) if BUILTINS.contains(&bin.as_str()) => println!("{} is a shell builtin", bin),
-            Some(bin) if self.valid_commands.contains_key(*bin) => {
-                println!(
-                    "{} is {}",
-                    bin,
-                    self.valid_commands.get(*bin).unwrap().to_str().unwrap()
-                )
+            Some(bin) if BUILTINS.contains(&bin.as_str()) => {
+                writeln!(out, "{} is a shell builtin", bin)
             }
-            None => println!("Wrong usage"), //this right here is the entry point for a manpage message
-            Some(_) => println!(),
-        };
+
+            Some(bin) if self.valid_commands.contains_key(*bin) => writeln!(
+                out,
+                "{} is {}",
+                bin,
+                self.valid_commands.get(*bin).unwrap().to_str().unwrap()
+            ),
+            None => writeln!(out, "Wrong usage"), //this right here is the entry point for a manpage message
+            Some(_) => writeln!(out),
+        }
     }
 }
 
@@ -157,14 +179,18 @@ impl<'a> Execute for TypeCommand<'a> {
  ------------ PWD ------------
 *******************************/
 impl PwdCommand {
-    pub fn new() -> Self {
-        PwdCommand {}
+    pub fn new(options: CommandOptions) -> Self {
+        PwdCommand { options }
     }
 }
 
 impl Execute for PwdCommand {
-    fn execute(&self) {
-        println!("{}", env::current_dir().expect("No current dir").display());
+    fn execute(&self) -> Result<(), Error> {
+        writeln!(
+            self.options.get_output().expect("Failed to get write"),
+            "{}",
+            env::current_dir().expect("No current dir").display()
+        )
     }
 }
 
@@ -178,15 +204,16 @@ impl CdCommand {
 }
 
 impl Execute for CdCommand {
-    fn execute(&self) {
+    fn execute(&self) -> Result<(), Error> {
+        let mut out = self.options.get_output().expect("Failed to get write.");
         if let Some(path) = &self.options.args.clone().unwrap().first() {
             match path {
                 path if *path == &"~".to_string() => {
                     env::set_current_dir(env::var_os("HOME").unwrap_or_else(|| {
-                        println!("No HOME directory found.");
+                        writeln!(out, "No HOME directory found.")
+                            .expect("Failed to write to output.");
                         Path::new("").into()
-                    }))
-                    .expect("Failed to set current directory.")
+                    }))?
                 }
                 path => {
                     env::set_current_dir(Path::new(path))
@@ -194,5 +221,6 @@ impl Execute for CdCommand {
                 }
             }
         }
+        Ok(())
     }
 }
