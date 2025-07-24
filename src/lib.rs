@@ -29,7 +29,8 @@ impl Shell {
     }
 
     pub fn parse(&self, input: String) -> Result<Box<dyn Execute>, Box<dyn error::Error>> {
-        let options = parse_input(&input);
+        let mut parser = Parser::default();
+        let options = parser.parse_input(&input);
         // We are now fetching these every input
         let valid_commands = get_binaries_from_paths(get_path_variable()).unwrap_or_default();
         match options.cmd.clone().unwrap_or_default().as_str() {

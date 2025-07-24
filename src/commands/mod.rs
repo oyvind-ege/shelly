@@ -1,5 +1,5 @@
 use crate::CommandInfo;
-use crate::CommandOptions;
+use crate::ParsedCommand;
 use std::io::Error;
 
 use std::collections::HashMap;
@@ -18,39 +18,39 @@ pub trait Execute {
 
 #[derive(Debug)]
 pub struct ExitCommand {
-    options: CommandOptions,
+    options: ParsedCommand,
 }
 
 #[derive(Debug)]
 pub struct EchoCommand {
-    options: CommandOptions,
+    options: ParsedCommand,
 }
 
 #[derive(Debug)]
 pub struct TypeCommand {
-    options: CommandOptions,
+    options: ParsedCommand,
     valid_commands: HashMap<String, OsString>,
 }
 
 #[derive(Debug)]
 pub struct InvalidCommand {
-    options: CommandOptions,
+    options: ParsedCommand,
 }
 
 #[derive(Debug)]
 pub struct RunCommand {
-    options: CommandOptions,
+    options: ParsedCommand,
     command: CommandInfo,
 }
 
 #[derive(Debug)]
 pub struct PwdCommand {
-    options: CommandOptions,
+    options: ParsedCommand,
 }
 
 #[derive(Debug)]
 pub struct CdCommand {
-    options: CommandOptions,
+    options: ParsedCommand,
 }
 
 /*******************************
@@ -58,7 +58,7 @@ pub struct CdCommand {
 *******************************/
 
 impl ExitCommand {
-    pub fn new(options: CommandOptions) -> Self {
+    pub fn new(options: ParsedCommand) -> Self {
         ExitCommand { options }
     }
 }
@@ -76,7 +76,7 @@ impl Execute for ExitCommand {
  ------------ Echo ------------
 *******************************/
 impl EchoCommand {
-    pub fn new(options: CommandOptions) -> Self {
+    pub fn new(options: ParsedCommand) -> Self {
         EchoCommand { options }
     }
 }
@@ -97,7 +97,7 @@ impl Execute for EchoCommand {
  ------------ Invalid ------------
 *******************************/
 impl InvalidCommand {
-    pub fn new(options: CommandOptions) -> Self {
+    pub fn new(options: ParsedCommand) -> Self {
         InvalidCommand { options }
     }
 }
@@ -118,7 +118,7 @@ impl Execute for InvalidCommand {
  ------------ Run ------------
 *******************************/
 impl RunCommand {
-    pub fn new(options: CommandOptions, command: CommandInfo) -> Self {
+    pub fn new(options: ParsedCommand, command: CommandInfo) -> Self {
         RunCommand { command, options }
     }
 }
@@ -139,7 +139,7 @@ impl Execute for RunCommand {
  ------------ Type ------------
 *******************************/
 impl TypeCommand {
-    pub fn new(options: CommandOptions, valid_commands: HashMap<String, OsString>) -> Self {
+    pub fn new(options: ParsedCommand, valid_commands: HashMap<String, OsString>) -> Self {
         TypeCommand {
             options,
             valid_commands,
@@ -179,7 +179,7 @@ impl Execute for TypeCommand {
  ------------ PWD ------------
 *******************************/
 impl PwdCommand {
-    pub fn new(options: CommandOptions) -> Self {
+    pub fn new(options: ParsedCommand) -> Self {
         PwdCommand { options }
     }
 }
@@ -198,7 +198,7 @@ impl Execute for PwdCommand {
  ------------ Cd ------------
 *******************************/
 impl CdCommand {
-    pub fn new(options: CommandOptions) -> Self {
+    pub fn new(options: ParsedCommand) -> Self {
         CdCommand { options }
     }
 }
