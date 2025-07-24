@@ -1,35 +1,14 @@
-[![progress-banner](https://backend.codecrafters.io/progress/shell/d1bc2faa-4b2c-46a6-9b89-47dfe4e6745e)](https://app.codecrafters.io/users/codecrafters-bot?r=2qF)
+# Shelly - a poorly written shell
+This is an atrociously written shell, in Rust :D. 
 
-This is a starting point for Rust solutions to the
-["Build Your Own Shell" Challenge](https://app.codecrafters.io/courses/shell/overview).
+This was my first project in Rust, and I absolutely hate it. But it's fun to look at the trainwreck that is the parsing logic.
 
-In this challenge, you'll build your own POSIX compliant shell that's capable of
-interpreting shell commands, running external programs and builtin commands like
-cd, pwd, echo and more. Along the way, you'll learn about shell command parsing,
-REPLs, builtin commands, and more.
+I am not very excited about parsing, abstract syntax trees, tokenization, etc. etc, either, so **unfortunately this project is no longer being worked on**.
 
-**Note**: If you're viewing this repo on GitHub, head over to
-[codecrafters.io](https://codecrafters.io) to try the challenge.
+## So, what can this thing do?
 
-# Passing the first stage
+It prompts you for input, and it correctly handles most things like `echo` `type` `ls` - some simple builtins plus most of your own PATH executables.
+It also supports and correctly interprets, by some miracle, both single- and double-quotes.
 
-The entry point for your `shell` implementation is in `src/main.rs`. Study and
-uncomment the relevant code, and push your changes to pass the first stage:
-
-```sh
-git commit -am "pass 1st stage" # any msg
-git push origin master
-```
-
-Time to move on to the next stage!
-
-# Stage 2 & beyond
-
-Note: This section is for stages 2 and beyond.
-
-1. Ensure you have `cargo (1.82)` installed locally
-1. Run `./your_program.sh` to run your program, which is implemented in
-   `src/main.rs`. This command compiles your Rust project, so it might be slow
-   the first time you run it. Subsequent runs will be fast.
-1. Commit your changes and run `git push origin master` to submit your solution
-   to CodeCrafters. Test output will be streamed to your terminal.
+## What's the gist?
+It uses a state-machine in the logic parser to determine how to interpret each additional character from the input. There is no fancy tokenization, no scalable architecture. Just pure and simply chaos that leads to a functional bare-bones Shell.
